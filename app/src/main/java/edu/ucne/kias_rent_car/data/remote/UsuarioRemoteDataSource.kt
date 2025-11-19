@@ -8,15 +8,11 @@ class UsuarioRemoteDataSource @Inject constructor(
     private val apiService: ApiService
 ) {
 
-    /**
-     * Realizar login buscando usuario por userName y password
-     */
     suspend fun login(userName: String, password: String): UsuarioResponse? {
         return try {
             val response = apiService.obtenerUsuarios()
             if (response.isSuccessful) {
                 val usuarios = response.body() ?: emptyList()
-                // Buscar usuario con userName y password coincidentes
                 usuarios.find {
                     it.userName?.trim() == userName.trim() &&
                             it.password?.trim() == password.trim()
@@ -45,9 +41,6 @@ class UsuarioRemoteDataSource @Inject constructor(
         }
     }
 
-    /**
-     * Obtener usuario por ID
-     */
     suspend fun obtenerUsuarioPorId(id: Int): UsuarioResponse? {
         return try {
             val response = apiService.obtenerUsuarioPorId(id)
@@ -61,9 +54,6 @@ class UsuarioRemoteDataSource @Inject constructor(
         }
     }
 
-    /**
-     * Verificar si userName ya existe
-     */
     suspend fun verificarUserNameExistente(userName: String): Boolean {
         return try {
             val response = apiService.obtenerUsuarios()
