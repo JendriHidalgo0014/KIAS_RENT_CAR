@@ -13,13 +13,12 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = LoginRoute  // ← Inicia en Login
+        startDestination = LoginRoute
     ) {
         composable<LoginRoute> {
             LoginScreen(
                 onLoginExitoso = {
-                    // Aquí puedes navegar a tu pantalla principal cuando la tengas
-                    // Por ahora, solo cerramos sesión del login
+
                 },
                 onNavigateToRegistro = {
                     navController.navigate(RegistroRoute)
@@ -30,7 +29,7 @@ fun AppNavigation() {
         composable<RegistroRoute> {
             RegistroScreen(
                 onRegistroExitoso = {
-                    navController.popBackStack()  // Vuelve al login después de registrarse
+                    navController.popBackStack()
                 },
                 onNavigateBack = {
                     navController.popBackStack()

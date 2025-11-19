@@ -231,7 +231,7 @@ fun LoginScreen(
                     fontSize = 14.sp
                 )
                 TextButton(
-                    onClick = onNavigateToRegistro  // ← CAMBIO: usa la función de navegación
+                    onClick = onNavigateToRegistro
                 ) {
                     Text(
                         text = "Registrate",
@@ -253,7 +253,7 @@ fun LoginScreenPreview() {
     MaterialTheme {
         LoginScreen(
             onLoginExitoso = {},
-            onNavigateToRegistro = {}  // ← CAMBIO: agrega el parámetro en el preview
+            onNavigateToRegistro = {}
         )
     }
 }

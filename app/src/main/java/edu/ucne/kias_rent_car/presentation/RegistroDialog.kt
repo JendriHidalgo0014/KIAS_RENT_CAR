@@ -86,7 +86,6 @@ fun RegistroDialog(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Campo UserName
                 OutlinedTextField(
                     value = state.userName,
                     onValueChange = { viewModel.updateUserName(it) },
@@ -116,7 +115,6 @@ fun RegistroDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Campo Password
                 OutlinedTextField(
                     value = state.password,
                     onValueChange = { viewModel.updatePassword(it) },
@@ -154,7 +152,6 @@ fun RegistroDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Campo Confirm Password
                 OutlinedTextField(
                     value = state.confirmPassword,
                     onValueChange = { viewModel.updateConfirmPassword(it) },

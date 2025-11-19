@@ -12,13 +12,13 @@ import retrofit2.http.Path
 
 interface ApiService {
 
-    @GET(".")  // Para obtener todos los usuarios de la base
+    @GET(".")
     suspend fun obtenerUsuarios(): Response<List<UsuarioResponse>>
 
     @GET("{id}")
     suspend fun obtenerUsuarioPorId(@Path("id") id: Int): Response<UsuarioResponse>
 
-    @POST(".")  // Para crear en la ruta base
+    @POST(".")
     suspend fun crearUsuario(@Body usuario: UsuarioRequest): Response<UsuarioResponse>
 
     @PUT("{id}")
