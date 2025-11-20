@@ -12,21 +12,21 @@ import retrofit2.http.Path
 
 interface ApiService {
 
-    @GET(".")
+    @GET("api/Usuarios")
     suspend fun obtenerUsuarios(): Response<List<UsuarioResponse>>
 
-    @GET("{id}")
+    @GET("api/Usuarios/{id}")
     suspend fun obtenerUsuarioPorId(@Path("id") id: Int): Response<UsuarioResponse>
 
-    @POST(".")
+    @POST("api/Usuarios")
     suspend fun crearUsuario(@Body usuario: UsuarioRequest): Response<UsuarioResponse>
 
-    @PUT("{id}")
+    @PUT("api/Usuarios/{id}")
     suspend fun actualizarUsuario(
         @Path("id") id: Int,
         @Body usuario: UsuarioRequest
     ): Response<UsuarioResponse>
 
-    @DELETE("{id}")
+    @DELETE("api/Usuarios/{id}")
     suspend fun eliminarUsuario(@Path("id") id: Int): Response<Unit>
 }
