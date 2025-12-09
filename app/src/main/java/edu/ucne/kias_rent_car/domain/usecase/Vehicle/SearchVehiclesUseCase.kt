@@ -6,7 +6,9 @@ import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class SearchVehiclesUseCase @Inject constructor(
-    private val repo: VehicleRepository
+    private val repository: VehicleRepository
 ) {
-    operator fun invoke(query: String): Flow<List<Vehicle>> = repo.searchVehicles(query)
+    suspend operator fun invoke(query: String): Flow<List<Vehicle>> {
+        return repository.searchVehicles(query)
+    }
 }
