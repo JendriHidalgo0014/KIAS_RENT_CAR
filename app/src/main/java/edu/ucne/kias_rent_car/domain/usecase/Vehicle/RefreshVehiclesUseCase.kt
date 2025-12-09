@@ -5,7 +5,9 @@ import edu.ucne.kias_rent_car.domain.repository.VehicleRepository
 import javax.inject.Inject
 
 class RefreshVehiclesUseCase @Inject constructor(
-    private val repo: VehicleRepository
+    private val repository: VehicleRepository
 ) {
-    suspend operator fun invoke(): Resource<Unit> = repo.refreshVehicles()
+    suspend operator fun invoke(): Resource<Unit> {
+        return repository.refreshVehicles()
+    }
 }
