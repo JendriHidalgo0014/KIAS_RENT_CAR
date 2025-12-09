@@ -1,10 +1,8 @@
 package edu.ucne.kias_rent_car.domain.model
 
-import java.util.UUID
-
 data class Vehicle(
-    val id: String = UUID.randomUUID().toString(),
-    val remoteId: Int? = null,
+    val id: String,
+    val remoteId: Int,
     val modelo: String,
     val descripcion: String,
     val categoria: VehicleCategory,
@@ -12,19 +10,17 @@ data class Vehicle(
     val transmision: TransmisionType,
     val precioPorDia: Double,
     val imagenUrl: String,
-    val disponible: Boolean = true,
-    val isPendingSync: Boolean = false
+    val disponible: Boolean
 )
-
 enum class VehicleCategory(val displayName: String) {
-    ALL("All"),
+    ALL("Todos"),
     SUV("SUV"),
-    SEDAN("Sedan"),
-    COMPACT("Compact"),
-    LUXURY("Luxury")
+    SEDAN("Sedán"),
+    HATCHBACK("Hatchback"),
+    ELECTRIC("Eléctrico"),
+    HYBRID("Híbrido")
 }
-
 enum class TransmisionType(val displayName: String) {
-    AUTOMATIC("Automatic"),
+    AUTOMATIC("Automático"),
     MANUAL("Manual")
 }
