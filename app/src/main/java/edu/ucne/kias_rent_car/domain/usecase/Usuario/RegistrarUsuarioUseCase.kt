@@ -8,7 +8,17 @@ import javax.inject.Inject
 class RegistrarUsuarioUseCase @Inject constructor(
     private val usuarioRepository: UsuarioRepository
 ) {
-    suspend operator fun invoke(userName: String, password: String): Resource<Usuario> {
-        return usuarioRepository.registrarUsuario(userName.trim(), password)
+    suspend operator fun invoke(
+        nombre: String,
+        email: String,
+        password: String,
+        telefono: String?
+    ): Resource<Usuario> {
+        return usuarioRepository.registrarUsuario(
+            nombre = nombre.trim(),
+            email = email.trim(),
+            password = password,
+            telefono = telefono?.trim()
+        )
     }
 }
