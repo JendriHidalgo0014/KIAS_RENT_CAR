@@ -3,6 +3,7 @@ package edu.ucne.kias_rent_car.data.repository
 import edu.ucne.kias_rent_car.data.local.dao.VehicleDao
 import edu.ucne.kias_rent_car.data.mappers.VehiculoMapper.toDomain
 import edu.ucne.kias_rent_car.data.mappers.VehiculoMapper.toDomainList
+import edu.ucne.kias_rent_car.data.mappers.VehiculoMapper.toEntity
 import edu.ucne.kias_rent_car.data.mappers.VehiculoMapper.toEntityList
 import edu.ucne.kias_rent_car.data.remote.Resource
 import edu.ucne.kias_rent_car.data.remote.datasource.VehiculoRemoteDataSource
@@ -17,13 +18,13 @@ class VehicleRepositoryImpl @Inject constructor(
     private val remoteDataSource: VehiculoRemoteDataSource,
     private val vehicleDao: VehicleDao
 ) : VehicleRepository {
-    override fun observeAvailableVehicles(): Flow<List<Vehicle>> {
+    override suspend fun observeAvailableVehicles(): Flow<List<Vehicle>> {
         return vehicleDao.observeAllVehicles().map { entities ->
             entities.toDomainList()
         }
     }
 
-    override fun observeVehiclesByCategory(category: VehicleCategory): Flow<List<Vehicle>> {
+    override suspend fun observeVehiclesByCategory(category: VehicleCategory): Flow<List<Vehicle>> {
         return if (category == VehicleCategory.ALL) {
             observeAvailableVehicles()
         } else {
@@ -33,7 +34,7 @@ class VehicleRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun searchVehicles(query: String): Flow<List<Vehicle>> {
+    override suspend fun searchVehicles(query: String): Flow<List<Vehicle>> {
         return vehicleDao.searchVehicles("%$query%").map { entities ->
             entities.toDomainList()
         }
@@ -68,6 +69,9 @@ class VehicleRepositoryImpl @Inject constructor(
     suspend fun createVehicle(
         modelo: String,
         descripcion: String,
+        categoria: String,
+        asientos: Int,
+        transmision: String,
         precioPorDia: Double,
         imagenUrl: String
     ): Resource<Vehicle> {
@@ -75,10 +79,14 @@ class VehicleRepositoryImpl @Inject constructor(
             val response = remoteDataSource.createVehiculo(
                 modelo = modelo,
                 descripcion = descripcion,
+                categoria = categoria,
+                asientos = asientos,
+                transmision = transmision,
                 precioPorDia = precioPorDia,
                 imagenUrl = imagenUrl
             )
             if (response != null) {
+                vehicleDao.insertVehicle(response.toEntity())
                 Resource.Success(response.toDomain())
             } else {
                 Resource.Error("Error al crear vehículo")
@@ -92,6 +100,9 @@ class VehicleRepositoryImpl @Inject constructor(
         id: String,
         modelo: String,
         descripcion: String,
+        categoria: String,
+        asientos: Int,
+        transmision: String,
         precioPorDia: Double,
         imagenUrl: String
     ): Resource<Unit> {
@@ -101,10 +112,14 @@ class VehicleRepositoryImpl @Inject constructor(
                 id = remoteId,
                 modelo = modelo,
                 descripcion = descripcion,
+                categoria = categoria,
+                asientos = asientos,
+                transmision = transmision,
                 precioPorDia = precioPorDia,
                 imagenUrl = imagenUrl
             )
             if (success) {
+                refreshVehicles()
                 Resource.Success(Unit)
             } else {
                 Resource.Error("Error al actualizar")
