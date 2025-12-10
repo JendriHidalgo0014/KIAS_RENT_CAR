@@ -3,32 +3,14 @@ package edu.ucne.kias_rent_car.presentation.LoginTareas
 import edu.ucne.kias_rent_car.R
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,24 +31,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import edu.ucne.kias_rent_car.presentation.LoginTareas.LoginUiEvent
-import edu.ucne.kias_rent_car.presentation.LoginTareas.LoginViewModel
-
-private val scrimLight = Color(0xFF000000)
-val onErrorDark = Color(0xFF690005)
+import edu.ucne.kias_rent_car.ui.theme.onErrorDark
+import edu.ucne.kias_rent_car.ui.theme.scrimLight
 
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
-    onLoginExitoso: () -> Unit,
+    onLoginExitoso: (isAdmin: Boolean) -> Unit,
     onNavigateToRegistro: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(uiState.loginExitoso) {
-        uiState.loginExitoso?.let {
-            onLoginExitoso()
+        uiState.loginExitoso?.let { usuario ->
+            onLoginExitoso(usuario.esAdmin())
             viewModel.resetLoginExitoso()
         }
     }
@@ -83,7 +62,6 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-
             Spacer(modifier = Modifier.height(32.dp))
 
             Image(
@@ -95,7 +73,7 @@ fun LoginScreen(
             )
 
             Text(
-                text = "Inicia Sección",
+                text = "Iniciar Sesión",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -104,16 +82,17 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // Email Field
             OutlinedTextField(
-                value = uiState.userName,
-                onValueChange = { viewModel.onEvent(LoginUiEvent.UserNameChanged(it)) },
+                value = uiState.email,
+                onValueChange = { viewModel.onEvent(LoginUiEvent.EmailChanged(it)) },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Usuario", color = Color.Gray) },
-                placeholder = { Text("Ingresa tu usuario", color = Color.Gray) },
+                label = { Text("Email", color = Color.Gray) },
+                placeholder = { Text("Ingresa tu email", color = Color.Gray) },
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Username icon",
+                        imageVector = Icons.Default.Email,
+                        contentDescription = "Email icon",
                         tint = Color.Gray
                     )
                 },
@@ -126,7 +105,7 @@ fun LoginScreen(
                 ),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text,
+                    keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
                 ),
                 keyboardActions = KeyboardActions(
@@ -137,6 +116,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Password Field
             OutlinedTextField(
                 value = uiState.password,
                 onValueChange = { viewModel.onEvent(LoginUiEvent.PasswordChanged(it)) },
@@ -185,6 +165,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Login Button
             Button(
                 onClick = { viewModel.onEvent(LoginUiEvent.Login) },
                 modifier = Modifier
@@ -204,13 +185,14 @@ fun LoginScreen(
                     )
                 } else {
                     Text(
-                        text = "Login",
+                        text = "Iniciar Sesión",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
 
+            // Error Message
             uiState.error?.let { error ->
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -223,20 +205,19 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Register Link
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "No tienes un Usuario? ",
+                    text = "¿No tienes cuenta? ",
                     color = Color.Gray,
                     fontSize = 14.sp
                 )
-                TextButton(
-                    onClick = onNavigateToRegistro
-                ) {
+                TextButton(onClick = onNavigateToRegistro) {
                     Text(
-                        text = "Registrate",
+                        text = "Regístrate",
                         color = onErrorDark,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
@@ -249,13 +230,126 @@ fun LoginScreen(
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
-fun LoginScreenPreview() {
-    MaterialTheme {
-        LoginScreen(
-            onLoginExitoso = {},
-            onNavigateToRegistro = {}
-        )
+private fun LoginScreenPreview() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(scrimLight)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Image(
+                painter = painterResource(id = R.drawable.kias_rent_car),
+                contentDescription = "KIA'S Rent Car Logo",
+                modifier = Modifier
+                    .size(200.dp)
+                    .padding(bottom = 24.dp)
+            )
+
+            Text(
+                text = "Iniciar Sesión",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            OutlinedTextField(
+                value = "usuario@email.com",
+                onValueChange = {},
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Email", color = Color.Gray) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Email,
+                        contentDescription = "Email icon",
+                        tint = Color.Gray
+                    )
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedBorderColor = onErrorDark,
+                    unfocusedBorderColor = Color.Gray
+                ),
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = "••••••••",
+                onValueChange = {},
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Contraseña", color = Color.Gray) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Password icon",
+                        tint = Color.Gray
+                    )
+                },
+                visualTransformation = PasswordVisualTransformation(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedBorderColor = onErrorDark,
+                    unfocusedBorderColor = Color.Gray
+                ),
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = {},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = onErrorDark,
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "Iniciar Sesión",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "¿No tienes cuenta? ",
+                    color = Color.Gray,
+                    fontSize = 14.sp
+                )
+                TextButton(onClick = {}) {
+                    Text(
+                        text = "Regístrate",
+                        color = onErrorDark,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
     }
 }
