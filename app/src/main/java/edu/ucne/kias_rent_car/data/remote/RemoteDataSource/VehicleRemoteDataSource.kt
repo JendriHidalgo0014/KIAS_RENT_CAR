@@ -25,6 +25,7 @@ class VehiculoRemoteDataSource @Inject constructor(
             null
         }
     }
+
     suspend fun getVehiculoById(id: Int): VehiculoDto? {
         return try {
             val response = apiService.getVehiculoById(id)
@@ -36,6 +37,9 @@ class VehiculoRemoteDataSource @Inject constructor(
     suspend fun createVehiculo(
         modelo: String,
         descripcion: String,
+        categoria: String,
+        asientos: Int,
+        transmision: String,
         precioPorDia: Double,
         imagenUrl: String
     ): VehiculoDto? {
@@ -43,9 +47,9 @@ class VehiculoRemoteDataSource @Inject constructor(
             val request = VehiculoRequest(
                 modelo = modelo,
                 descripcion = descripcion,
-                categoria = "SUV",
-                asientos = 5,
-                transmision = "Automatic",
+                categoria = categoria,
+                asientos = asientos,
+                transmision = transmision,
                 precioPorDia = precioPorDia,
                 imagenUrl = imagenUrl
             )
@@ -55,10 +59,14 @@ class VehiculoRemoteDataSource @Inject constructor(
             null
         }
     }
+
     suspend fun updateVehiculo(
         id: Int,
         modelo: String,
         descripcion: String,
+        categoria: String,
+        asientos: Int,
+        transmision: String,
         precioPorDia: Double,
         imagenUrl: String
     ): Boolean {
@@ -66,9 +74,9 @@ class VehiculoRemoteDataSource @Inject constructor(
             val request = VehiculoRequest(
                 modelo = modelo,
                 descripcion = descripcion,
-                categoria = "SUV",
-                asientos = 5,
-                transmision = "Automatic",
+                categoria = categoria,
+                asientos = asientos,
+                transmision = transmision,
                 precioPorDia = precioPorDia,
                 imagenUrl = imagenUrl
             )
@@ -78,6 +86,7 @@ class VehiculoRemoteDataSource @Inject constructor(
             false
         }
     }
+
     suspend fun deleteVehiculo(id: Int): Boolean {
         return try {
             val response = apiService.deleteVehiculo(id)
