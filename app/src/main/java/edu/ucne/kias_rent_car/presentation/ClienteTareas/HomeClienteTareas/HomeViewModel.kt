@@ -20,8 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val getVehiclesByCategory: GetVehiclesByCategoryUseCase,
-    private val searchVehicles: SearchVehiclesUseCase,
-    private val refreshVehicles: RefreshVehiclesUseCase
+    private val searchVehiclesUseCase: SearchVehiclesUseCase,
+    private val refreshVehiclesUseCase: RefreshVehiclesUseCase  // ← CAMBIADO
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
@@ -44,7 +44,7 @@ class HomeViewModel @Inject constructor(
             is HomeEvent.OnSearchQueryChanged -> {
                 _state.update { it.copy(searchQuery = event.query) }
                 if (event.query.isNotBlank()) {
-                    searchVehicles(event.query)
+                    performSearch(event.query)
                 } else {
                     loadVehicles()
                 }
@@ -76,9 +76,9 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun searchVehicles(query: String) {
+    private fun performSearch(query: String) {
         viewModelScope.launch {
-            searchVehicles.invoke(query)
+            searchVehiclesUseCase(query)
                 .catch { e ->
                     _state.update { it.copy(error = e.message) }
                 }
@@ -91,16 +91,19 @@ class HomeViewModel @Inject constructor(
     private fun refreshFromServer() {
         viewModelScope.launch {
             _state.update { it.copy(isRefreshing = true) }
-            when (val result = refreshVehicles()) {
-                is Resource.Success -> {
+            when (val result = refreshVehiclesUseCase()) {
+                is Resource.Success<*> -> {
                     _state.update { it.copy(isRefreshing = false) }
+                    loadVehicles() // Recargar después de refresh
                 }
-                is Resource.Error -> {
+                is Resource.Error<*> -> {
                     _state.update {
                         it.copy(isRefreshing = false, error = result.message)
                     }
                 }
-                is Resource.Loading -> {}
+                is Resource.Loading<*> -> {
+                    // No hacer nada
+                }
             }
         }
     }
