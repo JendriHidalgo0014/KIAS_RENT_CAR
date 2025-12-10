@@ -1,46 +1,65 @@
 package edu.ucne.kias_rent_car.data.repository
 
-import edu.ucne.kias_rent_car.data.mappers.UsuarioMapper.crearUsuarioRequest
+import edu.ucne.kias_rent_car.data.local.dao.UsuarioDao
 import edu.ucne.kias_rent_car.data.mappers.UsuarioMapper.toDomain
+import edu.ucne.kias_rent_car.data.mappers.UsuarioMapper.toEntity
 import edu.ucne.kias_rent_car.data.remote.Resource
 import edu.ucne.kias_rent_car.data.remote.UsuarioRemoteDataSource
 import edu.ucne.kias_rent_car.domain.model.Usuario
 import edu.ucne.kias_rent_car.domain.repository.UsuarioRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class UsuarioRepositoryImpl @Inject constructor(
-    private val remoteDataSource: UsuarioRemoteDataSource
+    private val remoteDataSource: UsuarioRemoteDataSource,
+    private val usuarioDao: UsuarioDao
 ) : UsuarioRepository {
-
-    override suspend fun login(userName: String, password: String): Resource<Usuario> {
+    override suspend fun login(email: String, password: String): Resource<Usuario> {
         return try {
-            if (userName.isBlank() || password.isBlank()) {
-                return Resource.Error("Usuario y contraseña son requeridos")
+            if (email.isBlank() || password.isBlank()) {
+                return Resource.Error("Email y contraseña son requeridos")
             }
-
-            val usuarioDto = remoteDataSource.login(userName, password)
+            val usuarioDto = remoteDataSource.login(email.trim(), password)
 
             if (usuarioDto != null) {
-                val usuario = usuarioDto.toDomain()
-                if (usuario != null) {
-                    Resource.Success(usuario)
-                } else {
-                    Resource.Error("Error al procesar datos del usuario")
-                }
+                usuarioDao.logoutAll()
+                usuarioDao.insertUsuario(usuarioDto.toEntity(isLoggedIn = true))
+                Resource.Success(usuarioDto.toDomain())
             } else {
-                Resource.Error("Usuario o contraseña incorrectos")
+                val usuarioLocal = usuarioDao.getUsuarioByEmail(email.trim())
+                if (usuarioLocal != null && usuarioLocal.password == password) {
+                    usuarioDao.logoutAll()
+                    usuarioDao.setLoggedIn(usuarioLocal.usuarioId)
+                    Resource.Success(usuarioLocal.toDomain())
+                } else {
+                    Resource.Error("Email o contraseña incorrectos")
+                }
             }
         } catch (e: Exception) {
-            Resource.Error("Error de conexión. Verifica tu internet")
+            try {
+                val usuarioLocal = usuarioDao.getUsuarioByEmail(email.trim())
+                if (usuarioLocal != null && usuarioLocal.password == password) {
+                    usuarioDao.logoutAll()
+                    usuarioDao.setLoggedIn(usuarioLocal.usuarioId)
+                    Resource.Success(usuarioLocal.toDomain())
+                } else {
+                    Resource.Error("Sin conexión. Verifica tu internet")
+                }
+            } catch (e: Exception) {
+                Resource.Error("Error de conexión")
+            }
         }
     }
 
     override suspend fun registrarUsuario(
-        userName: String,
-        password: String
+        nombre: String,
+        email: String,
+        password: String,
+        telefono: String?
     ): Resource<Usuario> {
         return try {
-            if (userName.isBlank() || password.isBlank()) {
+            if (nombre.isBlank() || email.isBlank() || password.isBlank()) {
                 return Resource.Error("Todos los campos son requeridos")
             }
 
@@ -48,52 +67,81 @@ class UsuarioRepositoryImpl @Inject constructor(
                 return Resource.Error("La contraseña debe tener al menos 4 caracteres")
             }
 
-            val existe = remoteDataSource.verificarUserNameExistente(userName)
-            if (existe) {
-                return Resource.Error("El nombre de usuario ya está registrado")
-            }
+            val usuarioDto = remoteDataSource.registro(
+                nombre = nombre.trim(),
+                email = email.trim(),
+                password = password,
+                telefono = telefono?.trim()
+            )
 
-            val request = crearUsuarioRequest(userName, password)
-            val usuarioRegistrado = remoteDataSource.registrarUsuario(request)
+            if (usuarioDto != null) {
+                usuarioDao.logoutAll()
+                usuarioDao.insertUsuario(usuarioDto.toEntity(isLoggedIn = true))
 
-            if (usuarioRegistrado != null) {
-                val usuario = usuarioRegistrado.toDomain()
-                if (usuario != null) {
-                    Resource.Success(usuario)
-                } else {
-                    Resource.Error("Error al crear usuario")
-                }
+                Resource.Success(usuarioDto.toDomain())
             } else {
-                Resource.Error("No se pudo crear el usuario")
+                Resource.Error("No se pudo crear el usuario. El email puede estar en uso.")
             }
         } catch (e: Exception) {
             Resource.Error("Error de conexión. Verifica tu internet")
         }
     }
 
-    override suspend fun verificarUserNameExistente(userName: String): Boolean {
-        return try {
-            remoteDataSource.verificarUserNameExistente(userName)
-        } catch (e: Exception) {
-            false
-        }
+    override suspend fun logout() {
+        usuarioDao.logoutAll()
     }
 
-    override suspend fun obtenerUsuarioPorId(id: Int): Resource<Usuario> {
+    override suspend fun getUsuarioLogueado(): Usuario? {
+        return usuarioDao.getLoggedInUsuario()?.toDomain()
+    }
+
+    override fun observeUsuarioLogueado(): Flow<Usuario?> {
+        return usuarioDao.observeLoggedInUsuario().map { it?.toDomain() }
+    }
+
+    override suspend fun getUsuarioById(id: Int): Resource<Usuario> {
         return try {
-            val usuarioDto = remoteDataSource.obtenerUsuarioPorId(id)
-            if (usuarioDto != null) {
-                val usuario = usuarioDto.toDomain()
-                if (usuario != null) {
-                    Resource.Success(usuario)
-                } else {
-                    Resource.Error("Usuario no encontrado")
-                }
+            val local = usuarioDao.getUsuarioById(id)
+            if (local != null) {
+                return Resource.Success(local.toDomain())
+            }
+            val remoto = remoteDataSource.getUsuarioById(id)
+            if (remoto != null) {
+                usuarioDao.insertUsuario(remoto.toEntity())
+                Resource.Success(remoto.toDomain())
             } else {
                 Resource.Error("Usuario no encontrado")
             }
         } catch (e: Exception) {
-            Resource.Error("Error de conexión")
+            Resource.Error("Error al obtener usuario")
+        }
+    }
+
+    override suspend fun getAllUsuarios(): List<Usuario> {
+        return try {
+            val remotos = remoteDataSource.getUsuarios()
+            if (remotos != null) {
+                remotos.forEach { dto ->
+                    usuarioDao.insertUsuario(dto.toEntity())
+                }
+                remotos.map { it.toDomain() }
+            } else {
+                usuarioDao.getAllUsuarios().map { it.toDomain() }
+            }
+        } catch (e: Exception) {
+            try {
+                usuarioDao.getAllUsuarios().map { it.toDomain() }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+    }
+
+    override suspend fun deleteUsuario(id: Int): Boolean {
+        return try {
+            remoteDataSource.deleteUsuario(id)
+        } catch (e: Exception) {
+            false
         }
     }
 }

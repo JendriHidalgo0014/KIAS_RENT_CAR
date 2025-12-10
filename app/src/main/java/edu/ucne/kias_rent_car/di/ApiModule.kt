@@ -7,9 +7,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import edu.ucne.kias_rent_car.data.remote.ApiService
-import edu.ucne.kias_rent_car.data.remote.UsuarioRemoteDataSource
-import edu.ucne.kias_rent_car.data.repository.UsuarioRepositoryImpl
-import edu.ucne.kias_rent_car.domain.repository.UsuarioRepository
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -20,20 +17,14 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object ApiModule {
-    private const val BASE_URL = "https://gestionhuacalesapi.azurewebsites.net/api/Usuarios/"
+    private const val BASE_URL = "http://kiasrentcarapi.somee.com/api/"
     @Provides
     @Singleton
-    fun provideLoggingInterceptor(): HttpLoggingInterceptor {
-        return HttpLoggingInterceptor().apply {
+    fun provideOkHttpClient(): OkHttpClient {
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
-    }
 
-    @Provides
-    @Singleton
-    fun provideOkHttpClient(
-        loggingInterceptor: HttpLoggingInterceptor
-    ): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -41,7 +32,6 @@ object ApiModule {
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
     }
-
     @Provides
     @Singleton
     fun provideMoshi(): Moshi {
@@ -49,7 +39,6 @@ object ApiModule {
             .add(KotlinJsonAdapterFactory())
             .build()
     }
-
     @Provides
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient, moshi: Moshi): Retrofit {
@@ -59,23 +48,9 @@ object ApiModule {
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
     }
-
     @Provides
     @Singleton
-    fun provideUsuarioApi(retrofit: Retrofit): ApiService {
+    fun provideApiService(retrofit: Retrofit): ApiService {
         return retrofit.create(ApiService::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideUsuarioRemoteDataSource(usuarioApi: ApiService): UsuarioRemoteDataSource {
-        return UsuarioRemoteDataSource(usuarioApi)
-    }
-    @Provides
-    @Singleton
-    fun provideUsuarioRepository(
-        remoteDataSource: UsuarioRemoteDataSource
-    ): UsuarioRepository {
-        return UsuarioRepositoryImpl(remoteDataSource)
     }
 }
