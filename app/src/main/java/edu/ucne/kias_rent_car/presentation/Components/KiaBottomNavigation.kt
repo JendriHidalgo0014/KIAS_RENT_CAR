@@ -1,82 +1,67 @@
 package edu.ucne.kias_rent_car.presentation.Components
 
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import edu.ucne.kias_rent_car.presentation.LoginTareas.onErrorDark
-import edu.ucne.kias_rent_car.ui.theme.scrimDark
-import edu.ucne.kias_rent_car.ui.theme.scrimDarkHighContrast
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import edu.ucne.kias_rent_car.ui.theme.onErrorDark
 import edu.ucne.kias_rent_car.ui.theme.scrimLight
-import edu.ucne.kias_rent_car.ui.theme.surfaceBrightDark
 
+data class BottomNavItem(
+    val route: String,
+    val title: String,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector
+)
 @Composable
 fun KiaBottomNavigation(
     currentRoute: String,
     onNavigate: (String) -> Unit
 ) {
+    val items = listOf(
+        BottomNavItem("home", "Inicio", Icons.Filled.Home, Icons.Outlined.Home),
+        BottomNavItem("bookings", "Reservas", Icons.Filled.DirectionsCar, Icons.Outlined.DirectionsCar),
+        BottomNavItem("support", "Soporte", Icons.Filled.HeadsetMic, Icons.Outlined.HeadsetMic),
+        BottomNavItem("profile", "Perfil", Icons.Filled.Person, Icons.Outlined.Person)
+    )
+
     NavigationBar(
-        containerColor = scrimDark
+        containerColor = scrimLight,
+        contentColor = Color.White
     ) {
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-            label = { Text("Home") },
-            selected = currentRoute == "home",
-            onClick = { onNavigate("home") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = onErrorDark,
-                selectedTextColor = onErrorDark,
-                unselectedIconColor = surfaceBrightDark,
-                unselectedTextColor = surfaceBrightDark,
-                indicatorColor = scrimDark
+        items.forEach { item ->
+            val isSelected = currentRoute == item.route
+
+            NavigationBarItem(
+                icon = {
+                    Icon(
+                        imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                        contentDescription = item.title,
+                        modifier = Modifier.size(24.dp)
+                    )
+                },
+                label = {
+                    Text(
+                        text = item.title,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                },
+                selected = isSelected,
+                onClick = { onNavigate(item.route) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = onErrorDark,
+                    selectedTextColor = onErrorDark,
+                    unselectedIconColor = Color.Gray,
+                    unselectedTextColor = Color.Gray,
+                    indicatorColor = Color.Transparent
+                )
             )
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.DateRange, contentDescription = "Bookings") },
-            label = { Text("Bookings") },
-            selected = currentRoute == "bookings",
-            onClick = { onNavigate("bookings") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = onErrorDark,
-                selectedTextColor = onErrorDark,
-                unselectedIconColor = surfaceBrightDark,
-                unselectedTextColor = surfaceBrightDark,
-                indicatorColor = scrimDark
-            )
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.Phone, contentDescription = "Support") },
-            label = { Text("Support") },
-            selected = currentRoute == "support",
-            onClick = { onNavigate("support") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = onErrorDark,
-                selectedTextColor = onErrorDark,
-                unselectedIconColor = surfaceBrightDark,
-                unselectedTextColor = surfaceBrightDark,
-                indicatorColor = scrimDark
-            )
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-            label = { Text("Profile") },
-            selected = currentRoute == "profile",
-            onClick = { onNavigate("profile") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = onErrorDark,
-                selectedTextColor = onErrorDark,
-                unselectedIconColor = surfaceBrightDark,
-                unselectedTextColor = surfaceBrightDark,
-                indicatorColor = scrimDark
-            )
-        )
+        }
     }
 }
