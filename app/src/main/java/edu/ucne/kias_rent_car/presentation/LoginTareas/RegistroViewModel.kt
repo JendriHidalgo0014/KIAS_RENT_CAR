@@ -16,119 +16,95 @@ import javax.inject.Inject
 class RegistroViewModel @Inject constructor(
     private val registrarUsuarioUseCase: RegistrarUsuarioUseCase
 ) : ViewModel() {
+
     private val _state = MutableStateFlow(RegistroUiState())
     val state: StateFlow<RegistroUiState> = _state.asStateFlow()
 
-    // Regex para validar email
-    private val emailRegex = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
-
-    private fun isValidEmail(email: String): Boolean {
-        return emailRegex.matches(email)
-    }
-
     fun onEvent(event: RegistroUiEvent) {
         when (event) {
-            is RegistroUiEvent.NombreChanged -> {
-                _state.update { it.copy(nombre = event.nombre, error = null) }
-            }
-            is RegistroUiEvent.EmailChanged -> {
-                val email = event.email
-                val emailError = if (email.isNotBlank() && !isValidEmail(email)) {
-                    "Formato inválido (ejemplo@gmail.com)"
-                } else {
-                    null
-                }
-                _state.update { it.copy(email = email, emailError = emailError, error = null) }
-            }
-            is RegistroUiEvent.TelefonoChanged -> {
-                _state.update { it.copy(telefono = event.telefono, error = null) }
-            }
-            is RegistroUiEvent.PasswordChanged -> {
-                _state.update { it.copy(password = event.password, error = null) }
-            }
-            is RegistroUiEvent.ConfirmPasswordChanged -> {
-                _state.update { it.copy(confirmPassword = event.confirmPassword, error = null) }
-            }
-            is RegistroUiEvent.TogglePasswordVisibility -> {
-                _state.update { it.copy(passwordVisible = !it.passwordVisible) }
-            }
-            is RegistroUiEvent.Registrar -> {
-                registrar()
-            }
-            is RegistroUiEvent.ClearError -> {
-                _state.update { it.copy(error = null) }
-            }
+            is RegistroUiEvent.OnNombreChange -> onNombreChange(event.nombre)
+            is RegistroUiEvent.OnEmailChange -> onEmailChange(event.email)
+            is RegistroUiEvent.OnTelefonoChange -> onTelefonoChange(event.telefono)
+            is RegistroUiEvent.OnPasswordChange -> onPasswordChange(event.password)
+            is RegistroUiEvent.OnConfirmPasswordChange -> onConfirmPasswordChange(event.confirmPassword)
+            RegistroUiEvent.TogglePasswordVisibility -> _state.update { it.copy(passwordVisible = !it.passwordVisible) }
+            RegistroUiEvent.Registrar -> registrar()
+            RegistroUiEvent.UserMessageShown -> _state.update { it.copy(userMessage = null) }
         }
     }
 
-    // Funciones legacy para compatibilidad
-    fun updateUserName(userName: String) = onEvent(RegistroUiEvent.NombreChanged(userName))
-    fun updatePassword(password: String) = onEvent(RegistroUiEvent.PasswordChanged(password))
-    fun updateConfirmPassword(confirmPassword: String) = onEvent(RegistroUiEvent.ConfirmPasswordChanged(confirmPassword))
-    fun togglePasswordVisibility() = onEvent(RegistroUiEvent.TogglePasswordVisibility)
+    private fun onNombreChange(nombre: String) {
+        val filtered = nombre.filter { it.isLetter() || it == ' ' }.take(30)
+        _state.update { it.copy(nombre = filtered) }
+    }
 
-    fun registrar() {
-        val currentState = _state.value
+    private fun onEmailChange(email: String) {
+        val emailError = if (email.isNotBlank() && !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            "Email inválido"
+        } else null
+        _state.update { it.copy(email = email, emailError = emailError) }
+    }
 
-        if (currentState.nombre.isBlank()) {
-            _state.update { it.copy(error = "El nombre es requerido") }
-            return
-        }
+    private fun onTelefonoChange(telefono: String) {
+        val filtered = telefono.filter { it.isDigit() }.take(10)
+        _state.update { it.copy(telefono = filtered) }
+    }
 
-        if (currentState.email.isBlank()) {
-            _state.update { it.copy(error = "El email es requerido") }
-            return
-        }
+    private fun onPasswordChange(password: String) {
+        val filtered = password.take(15)
+        _state.update { it.copy(password = filtered) }
+    }
 
-        if (!isValidEmail(currentState.email)) {
-            _state.update { it.copy(error = "Ingresa un email válido (ejemplo@gmail.com)") }
-            return
-        }
+    private fun onConfirmPasswordChange(confirmPassword: String) {
+        val filtered = confirmPassword.take(15)
+        _state.update { it.copy(confirmPassword = filtered) }
+    }
 
-        if (currentState.password.length < 4) {
-            _state.update { it.copy(error = "La contraseña debe tener al menos 4 caracteres") }
-            return
-        }
+    private fun esFormularioValido(): Boolean {
+        val state = _state.value
+        return state.nombre.isNotBlank() &&
+                state.email.isNotBlank() &&
+                state.emailError == null &&
+                state.password.length >= 4 &&
+                state.password == state.confirmPassword
+    }
 
-        if (currentState.password != currentState.confirmPassword) {
-            _state.update { it.copy(error = "Las contraseñas no coinciden") }
+    private fun registrar() {
+        if (!esFormularioValido()) {
+            _state.update { it.copy(userMessage = "Por favor completa todos los campos correctamente") }
             return
         }
 
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            _state.update { it.copy(isLoading = true) }
 
-            val resultado = registrarUsuarioUseCase(
-                nombre = currentState.nombre,
-                email = currentState.email,
-                password = currentState.password,
-                telefono = currentState.telefono.ifBlank { null }
+            val result = registrarUsuarioUseCase(
+                nombre = _state.value.nombre,
+                email = _state.value.email,
+                password = _state.value.password,
+                telefono = _state.value.telefono.ifBlank { null }
             )
 
-            _state.update {
-                when (resultado) {
-                    is Resource.Success -> {
+            when (result) {
+                is Resource.Success -> {
+                    _state.update {
                         it.copy(
                             isLoading = false,
                             registroExitoso = true,
-                            error = null
+                            userMessage = "Registro exitoso"
                         )
-                    }
-                    is Resource.Error -> {
-                        it.copy(
-                            isLoading = false,
-                            error = resultado.message
-                        )
-                    }
-                    is Resource.Loading -> {
-                        it.copy(isLoading = true)
                     }
                 }
+                is Resource.Error -> {
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            userMessage = result.message ?: "Error al registrar"
+                        )
+                    }
+                }
+                is Resource.Loading -> {}
             }
         }
-    }
-
-    fun resetState() {
-        _state.update { RegistroUiState() }
     }
 }
