@@ -22,7 +22,6 @@ import edu.ucne.kias_rent_car.presentation.Components.KiaBottomNavigation
 import edu.ucne.kias_rent_car.ui.theme.onErrorDark
 import edu.ucne.kias_rent_car.ui.theme.scrimLight
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -39,6 +38,25 @@ fun ProfileScreen(
         }
     }
 
+    ProfileBody(
+        state = state,
+        onEvent = { event ->
+            when (event) {
+                ProfileUiEvent.Logout -> viewModel.onEvent(event)
+                ProfileUiEvent.NavigateToHome -> onNavigateToHome()
+                ProfileUiEvent.NavigateToBookings -> onNavigateToBookings()
+                ProfileUiEvent.NavigateToSupport -> onNavigateToSupport()
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProfileBody(
+    state: ProfileUiState,
+    onEvent: (ProfileUiEvent) -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -49,9 +67,7 @@ fun ProfileScreen(
                         fontWeight = FontWeight.Bold
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = scrimLight)
             )
         },
         bottomBar = {
@@ -59,26 +75,24 @@ fun ProfileScreen(
                 currentRoute = "profile",
                 onNavigate = { route ->
                     when (route) {
-                        "home" -> onNavigateToHome()
-                        "bookings" -> onNavigateToBookings()
-                        "support" -> onNavigateToSupport()
-                        "profile" -> { }
+                        "home" -> onEvent(ProfileUiEvent.NavigateToHome)
+                        "bookings" -> onEvent(ProfileUiEvent.NavigateToBookings)
+                        "support" -> onEvent(ProfileUiEvent.NavigateToSupport)
                     }
                 }
             )
         },
         containerColor = scrimLight
-    ) { paddingValues ->
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(padding)
                 .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Avatar
             Box(
                 modifier = Modifier
                     .size(120.dp)
@@ -96,22 +110,18 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Información del usuario
             ProfileInfoRow(label = "Usuario:", value = state.nombre)
             ProfileInfoRow(label = "Correo:", value = state.email)
             ProfileInfoRow(label = "Teléfono:", value = state.telefono)
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Botón Cerrar Sesión
             Button(
-                onClick = { viewModel.logout() },
+                onClick = { onEvent(ProfileUiEvent.Logout) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = onErrorDark
-                ),
+                colors = ButtonDefaults.buttonColors(containerColor = onErrorDark),
                 shape = RoundedCornerShape(28.dp)
             ) {
                 Text(
@@ -127,10 +137,7 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun ProfileInfoRow(
-    label: String,
-    value: String
-) {
+private fun ProfileInfoRow(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -151,75 +158,13 @@ private fun ProfileInfoRow(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
-private fun ProfileScreenPreview() {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "KIA'S RENT CAR",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
-            )
-        },
-        containerColor = scrimLight
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF2D2D2D)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = Color.Gray,
-                    modifier = Modifier.size(60.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            ProfileInfoRow(label = "Usuario:", value = "Juan Pérez")
-            ProfileInfoRow(label = "Correo:", value = "juan@email.com")
-            ProfileInfoRow(label = "Teléfono:", value = "809-123-4567")
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Button(
-                onClick = {},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = onErrorDark),
-                shape = RoundedCornerShape(28.dp)
-            ) {
-                Text(
-                    text = "Cerrar Sesión",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-    }
+private fun ProfileBodyPreview() {
+    val state = ProfileUiState(
+        nombre = "Juan Pérez",
+        email = "juan@email.com",
+        telefono = "809-123-4567"
+    )
+    ProfileBody(state) {}
 }
