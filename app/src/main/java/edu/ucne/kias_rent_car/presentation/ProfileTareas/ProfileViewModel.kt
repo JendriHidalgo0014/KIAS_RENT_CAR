@@ -17,7 +17,6 @@ class ProfileViewModel @Inject constructor(
     private val getUsuarioLogueadoUseCase: GetUsuarioLogueadoUseCase,
     private val logoutUseCase: LogoutUseCase
 ) : ViewModel() {
-
     private val _state = MutableStateFlow(ProfileUiState())
     val state: StateFlow<ProfileUiState> = _state.asStateFlow()
 
@@ -25,24 +24,30 @@ class ProfileViewModel @Inject constructor(
         loadProfile()
     }
 
-    private fun loadProfile() {
-        viewModelScope.launch {
-            val usuario = getUsuarioLogueadoUseCase()
-            usuario?.let { u ->
-                _state.update {
-                    it.copy(
-                        nombre = u.nombre,
-                        email = u.email,
-                        telefono = u.telefono ?: "No registrado",
-                        fechaRegistro = "N/A",
-                        direccion = "No registrada"
-                    )
-                }
-            }
+    fun onEvent(event: ProfileUiEvent) {
+        when (event) {
+            ProfileUiEvent.Logout -> logout()
+            else -> Unit
         }
     }
 
-    fun logout() {
+    private fun loadProfile() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+
+            val usuario = getUsuarioLogueadoUseCase()
+
+            _state.update {
+                it.copy(
+                    nombre = usuario?.nombre ?: "",
+                    email = usuario?.email ?: "",
+                    telefono = usuario?.telefono ?: "No registrado",
+                    isLoading = false
+                )
+            }
+        }
+    }
+    private fun logout() {
         viewModelScope.launch {
             logoutUseCase()
             _state.update { it.copy(logoutSuccess = true) }
