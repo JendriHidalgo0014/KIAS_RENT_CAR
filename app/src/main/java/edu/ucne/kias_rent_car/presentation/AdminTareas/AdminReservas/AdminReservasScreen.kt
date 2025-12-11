@@ -27,15 +27,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
+import edu.ucne.kias_rent_car.domain.model.EstadoReserva
 import edu.ucne.kias_rent_car.domain.model.Reservacion
-import edu.ucne.kias_rent_car.domain.model.Ubicacion
 import edu.ucne.kias_rent_car.domain.model.Usuario
-import edu.ucne.kias_rent_car.domain.model.Vehicle
 import edu.ucne.kias_rent_car.presentation.Components.AdminBottomNavigation
 import edu.ucne.kias_rent_car.ui.theme.onErrorDark
 import edu.ucne.kias_rent_car.ui.theme.scrimLight
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminReservasScreen(
     viewModel: AdminReservasViewModel = hiltViewModel(),
@@ -47,6 +45,27 @@ fun AdminReservasScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    AdminReservasBody(
+        state = state,
+        onEvent = { event ->
+            when (event) {
+                is AdminReservasEvent.ReservaClicked -> onNavigateToModifyEstado(event.reservacionId)
+                is AdminReservasEvent.NavigateBack -> onNavigateBack()
+                is AdminReservasEvent.NavigateToHome -> onNavigateToHome()
+                is AdminReservasEvent.NavigateToVehiculos -> onNavigateToVehiculos()
+                is AdminReservasEvent.NavigateToProfile -> onNavigateToProfile()
+                else -> viewModel.onEvent(event)
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdminReservasBody(
+    state: AdminReservasUiState,
+    onEvent: (AdminReservasEvent) -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -58,7 +77,7 @@ fun AdminReservasScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = { onEvent(AdminReservasEvent.NavigateBack) }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
@@ -76,10 +95,10 @@ fun AdminReservasScreen(
                 currentRoute = "admin_reservas",
                 onNavigate = { route ->
                     when (route) {
-                        "admin_home" -> onNavigateToHome()
+                        "admin_home" -> onEvent(AdminReservasEvent.NavigateToHome)
                         "admin_reservas" -> { }
-                        "admin_vehiculos" -> onNavigateToVehiculos()
-                        "admin_profile" -> onNavigateToProfile()
+                        "admin_vehiculos" -> onEvent(AdminReservasEvent.NavigateToVehiculos)
+                        "admin_profile" -> onEvent(AdminReservasEvent.NavigateToProfile)
                     }
                 }
             )
@@ -106,11 +125,10 @@ fun AdminReservasScreen(
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val filtros = listOf("Todos", "Reservado", "En Proceso", "Finalizado")
-                items(filtros) { filtro ->
+                items(EstadoReserva.FILTROS_ADMIN) { filtro ->
                     FilterChip(
                         selected = state.filtroActual == filtro,
-                        onClick = { viewModel.onFiltroChanged(filtro) },
+                        onClick = { onEvent(AdminReservasEvent.FiltroChanged(filtro)) },
                         label = { Text(filtro) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = onErrorDark,
@@ -138,7 +156,7 @@ fun AdminReservasScreen(
                     items(state.reservaciones) { reservacion ->
                         AdminReservaCard(
                             reservacion = reservacion,
-                            onClick = { onNavigateToModifyEstado(reservacion.reservacionId) }
+                            onClick = { onEvent(AdminReservasEvent.ReservaClicked(reservacion.reservacionId)) }
                         )
                     }
                     item {
@@ -149,16 +167,17 @@ fun AdminReservasScreen(
         }
     }
 }
+
 @Composable
 private fun AdminReservaCard(
     reservacion: Reservacion,
     onClick: () -> Unit
 ) {
     val estadoColor = when (reservacion.estado) {
-        "Confirmada", "Reservado" -> Color(0xFF4CAF50)
-        "EnProceso", "En Proceso" -> Color(0xFFFF9800)
-        "Finalizada" -> Color.Gray
-        "Cancelada" -> onErrorDark
+        EstadoReserva.CONFIRMADA, EstadoReserva.RESERVADO -> Color(0xFF4CAF50)
+        EstadoReserva.EN_PROCESO_SIN_ESPACIO, EstadoReserva.EN_PROCESO -> Color(0xFFFF9800)
+        EstadoReserva.FINALIZADA -> Color.Gray
+        EstadoReserva.CANCELADA -> onErrorDark
         else -> Color.Gray
     }
 
@@ -177,7 +196,6 @@ private fun AdminReservaCard(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Imagen
             SubcomposeAsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(reservacion.vehiculo?.imagenUrl)
@@ -252,125 +270,53 @@ private fun AdminReservaCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
-private fun AdminReservasScreenPreview() {
-    val reservacionesEjemplo = listOf(
-        Reservacion(
-            reservacionId = 1,
-            usuarioId = 1,
-            vehiculoId = 1,
-            fechaRecogida = "2025-01-15",
-            horaRecogida = "10:00",
-            fechaDevolucion = "2025-01-20",
-            horaDevolucion = "10:00",
-            ubicacionRecogidaId = 1,
-            ubicacionDevolucionId = 1,
-            estado = "Confirmada",
-            subtotal = 500.0,
-            impuestos = 90.0,
-            total = 590.0,
-            codigoReserva = "KR-123456",
-            fechaCreacion = "2025-01-10",
-            usuario = Usuario(id = 1, nombre = "Juan Pérez", email = "juan@test.com", telefono = null, rol = "Cliente"),
-            vehiculo = null
-        ),
-        Reservacion(
-            reservacionId = 2,
-            usuarioId = 2,
-            vehiculoId = 2,
-            fechaRecogida = "2025-01-18",
-            horaRecogida = "09:00",
-            fechaDevolucion = "2025-01-22",
-            horaDevolucion = "09:00",
-            ubicacionRecogidaId = 1,
-            ubicacionDevolucionId = 1,
-            estado = "EnProceso",
-            subtotal = 600.0,
-            impuestos = 108.0,
-            total = 708.0,
-            codigoReserva = "KR-789012",
-            fechaCreacion = "2025-01-12",
-            usuario = Usuario(id = 2, nombre = "María García", email = "maria@test.com", telefono = null, rol = "Cliente"),
-            vehiculo = null
+private fun AdminReservasBodyPreview() {
+    val state = AdminReservasUiState(
+        isLoading = false,
+        filtroActual = EstadoReserva.TODOS,
+        reservaciones = listOf(
+            Reservacion(
+                reservacionId = 1,
+                usuarioId = 1,
+                vehiculoId = 1,
+                fechaRecogida = "2025-01-15",
+                horaRecogida = "10:00",
+                fechaDevolucion = "2025-01-20",
+                horaDevolucion = "10:00",
+                ubicacionRecogidaId = 1,
+                ubicacionDevolucionId = 1,
+                estado = EstadoReserva.CONFIRMADA,
+                subtotal = 500.0,
+                impuestos = 90.0,
+                total = 590.0,
+                codigoReserva = "KR-123456",
+                fechaCreacion = "2025-01-10",
+                usuario = Usuario(id = 1, nombre = "Juan Pérez", email = "juan@test.com", telefono = null, rol = "Cliente"),
+                vehiculo = null
+            ),
+            Reservacion(
+                reservacionId = 2,
+                usuarioId = 2,
+                vehiculoId = 2,
+                fechaRecogida = "2025-01-18",
+                horaRecogida = "09:00",
+                fechaDevolucion = "2025-01-22",
+                horaDevolucion = "09:00",
+                ubicacionRecogidaId = 1,
+                ubicacionDevolucionId = 1,
+                estado = EstadoReserva.EN_PROCESO,
+                subtotal = 600.0,
+                impuestos = 108.0,
+                total = 708.0,
+                codigoReserva = "KR-789012",
+                fechaCreacion = "2025-01-12",
+                usuario = Usuario(id = 2, nombre = "María García", email = "maria@test.com", telefono = null, rol = "Cliente"),
+                vehiculo = null
+            )
         )
     )
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "KIA'S RENT CAR",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = {}) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
-            )
-        },
-        containerColor = scrimLight
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp)
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Estado de Reservas",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val filtros = listOf("Todos", "Reservado", "En Proceso", "Finalizado")
-                items(filtros) { filtro ->
-                    FilterChip(
-                        selected = filtro == "Todos",
-                        onClick = {},
-                        label = { Text(filtro) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = onErrorDark,
-                            selectedLabelColor = Color.White,
-                            containerColor = Color(0xFF2D2D2D),
-                            labelColor = Color.White
-                        )
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(reservacionesEjemplo) { reservacion ->
-                    AdminReservaCard(
-                        reservacion = reservacion,
-                        onClick = {}
-                    )
-                }
-            }
-        }
-    }
+    AdminReservasBody(state) {}
 }
