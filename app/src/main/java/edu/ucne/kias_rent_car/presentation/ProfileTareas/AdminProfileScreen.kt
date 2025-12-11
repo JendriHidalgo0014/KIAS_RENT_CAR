@@ -1,4 +1,4 @@
-package edu.ucne.kias_rent_car.presentation.AdminTareas
+package edu.ucne.kias_rent_car.presentation.ProfileTareas
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -22,15 +22,38 @@ import edu.ucne.kias_rent_car.presentation.Components.AdminBottomNavigation
 import edu.ucne.kias_rent_car.ui.theme.onErrorDark
 import edu.ucne.kias_rent_car.ui.theme.scrimLight
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminProfileScreen(
     viewModel: AdminProfileViewModel = hiltViewModel(),
     onNavigateToAdminHome: () -> Unit,
+    onNavigateToReservas: () -> Unit,
+    onNavigateToVehiculos: () -> Unit,
     onLogout: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    AdminProfileBody(
+        state = state,
+        onEvent = { event ->
+            when (event) {
+                AdminProfileUiEvent.Logout -> {
+                    viewModel.onEvent(event)
+                    onLogout()
+                }
+                AdminProfileUiEvent.NavigateToHome -> onNavigateToAdminHome()
+                AdminProfileUiEvent.NavigateToReservas -> onNavigateToReservas()
+                AdminProfileUiEvent.NavigateToVehiculos -> onNavigateToVehiculos()
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdminProfileBody(
+    state: AdminProfileUiState,
+    onEvent: (AdminProfileUiEvent) -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -41,9 +64,7 @@ fun AdminProfileScreen(
                         fontWeight = FontWeight.Bold
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = scrimLight)
             )
         },
         bottomBar = {
@@ -51,24 +72,25 @@ fun AdminProfileScreen(
                 currentRoute = "admin_profile",
                 onNavigate = { route ->
                     when (route) {
-                        "admin_home" -> onNavigateToAdminHome()
+                        "admin_home" -> onEvent(AdminProfileUiEvent.NavigateToHome)
+                        "admin_reservas" -> onEvent(AdminProfileUiEvent.NavigateToReservas)
+                        "admin_vehiculos" -> onEvent(AdminProfileUiEvent.NavigateToVehiculos)
                         "admin_profile" -> { }
                     }
                 }
             )
         },
         containerColor = scrimLight
-    ) { paddingValues ->
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(padding)
                 .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Avatar
             Box(
                 modifier = Modifier
                     .size(120.dp)
@@ -86,26 +108,19 @@ fun AdminProfileScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Info del usuario
             ProfileInfoRow("Usuario:", state.nombre)
             ProfileInfoRow("Correo:", state.email)
             ProfileInfoRow("Rol:", state.rol)
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Botón Cerrar Sesión
             Button(
-                onClick = {
-                    viewModel.logout()
-                    onLogout()
-                },
+                onClick = { onEvent(AdminProfileUiEvent.Logout) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = onErrorDark
-                ),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = onErrorDark),
+                shape = RoundedCornerShape(28.dp)
             ) {
                 Text(
                     text = "Cerrar Sesión",
@@ -140,75 +155,13 @@ private fun ProfileInfoRow(label: String, value: String) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
-private fun AdminProfileScreenPreview() {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "KIA'S RENT CAR",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
-            )
-        },
-        containerColor = scrimLight
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(40.dp))
-
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF2D2D2D)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = Color.Gray,
-                    modifier = Modifier.size(60.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            ProfileInfoRow("Usuario:", "Admin")
-            ProfileInfoRow("Correo:", "admin@kiasrent.com")
-            ProfileInfoRow("Rol:", "Administrador")
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Button(
-                onClick = {},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = onErrorDark),
-                shape = RoundedCornerShape(28.dp)
-            ) {
-                Text(
-                    text = "Cerrar Sesión",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-    }
+private fun AdminProfileBodyPreview() {
+    val state = AdminProfileUiState(
+        nombre = "Admin",
+        email = "admin@kiasrent.com",
+        rol = "Administrador"
+    )
+    AdminProfileBody(state) {}
 }
