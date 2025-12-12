@@ -12,6 +12,5 @@ data class ReservationConfirmationUiState(
     val subtotal: Double = 0.0,
     val impuestos: Double = 0.0,
     val total: Double = 0.0,
-    val isLoading: Boolean = false,
-    val error: String? = null
+    val isLoading: Boolean = false
 )
