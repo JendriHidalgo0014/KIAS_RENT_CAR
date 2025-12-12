@@ -84,7 +84,7 @@ class HomeViewModelTest {
         viewModel = HomeViewModel(getVehiclesByCategoryUseCase, searchVehiclesUseCase, refreshVehiclesUseCase)
         advanceUntilIdle()
 
-        viewModel.onEvent(HomeEvent.OnCategorySelected(VehicleCategory.SUV))
+        viewModel.onEvent(HomeUiEvent.OnCategorySelected(VehicleCategory.SUV))
         advanceUntilIdle()
 
         assertEquals(VehicleCategory.SUV, viewModel.state.value.selectedCategory)
@@ -97,7 +97,7 @@ class HomeViewModelTest {
         viewModel = HomeViewModel(getVehiclesByCategoryUseCase, searchVehiclesUseCase, refreshVehiclesUseCase)
         advanceUntilIdle()
 
-        viewModel.onEvent(HomeEvent.OnSearchQueryChanged("Kia"))
+        viewModel.onEvent(HomeUiEvent.OnSearchQueryChanged("Kia"))
         advanceUntilIdle()
 
         assertEquals("Kia", viewModel.state.value.searchQuery)
@@ -110,7 +110,7 @@ class HomeViewModelTest {
         viewModel = HomeViewModel(getVehiclesByCategoryUseCase, searchVehiclesUseCase, refreshVehiclesUseCase)
         advanceUntilIdle()
 
-        viewModel.onEvent(HomeEvent.OnRefresh)
+        viewModel.onEvent(HomeUiEvent.OnRefresh)
         advanceUntilIdle()
 
         coVerify(atLeast = 2) { refreshVehiclesUseCase.invoke() }
@@ -124,7 +124,7 @@ class HomeViewModelTest {
         viewModel = HomeViewModel(getVehiclesByCategoryUseCase, searchVehiclesUseCase, refreshVehiclesUseCase)
         advanceUntilIdle()
 
-        viewModel.onEvent(HomeEvent.OnErrorDismissed)
+        viewModel.onEvent(HomeUiEvent.OnErrorDismissed)
 
         assertNull(viewModel.state.value.error)
     }
