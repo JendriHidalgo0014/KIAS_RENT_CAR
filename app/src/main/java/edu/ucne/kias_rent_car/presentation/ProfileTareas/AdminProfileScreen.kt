@@ -60,7 +60,7 @@ fun AdminProfileBody(
                 title = {
                     Text(
                         text = "KIA'S RENT CAR",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -150,7 +150,7 @@ private fun ProfileInfoRow(label: String, value: String) {
         Text(
             text = value,
             fontSize = 16.sp,
-            color = Color.White
+            color = MaterialTheme.colorScheme.onBackground
         )
     }
 }
@@ -158,10 +158,12 @@ private fun ProfileInfoRow(label: String, value: String) {
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun AdminProfileBodyPreview() {
-    val state = AdminProfileUiState(
-        nombre = "Admin",
-        email = "admin@kiasrent.com",
-        rol = "Administrador"
-    )
-    AdminProfileBody(state) {}
+    MaterialTheme {
+        val state = AdminProfileUiState(
+            nombre = "Admin",
+            email = "admin@kiasrent.com",
+            rol = "Administrador"
+        )
+        AdminProfileBody(state) {}
+    }
 }
