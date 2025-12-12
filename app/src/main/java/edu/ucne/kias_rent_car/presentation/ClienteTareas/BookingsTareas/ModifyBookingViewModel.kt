@@ -24,18 +24,25 @@ class ModifyBookingViewModel @Inject constructor(
     private val updateReservacionUseCase: UpdateReservacionUseCase,
     private val getUbicacionesUseCase: GetUbicacionesUseCase
 ) : ViewModel() {
-
     private val _state = MutableStateFlow(ModifyBookingUiState())
     val state: StateFlow<ModifyBookingUiState> = _state.asStateFlow()
 
-    fun loadBooking(bookingId: Int) {
+    fun onEvent(event: ModifyBookingUiEvent) {
+        when (event) {
+            is ModifyBookingUiEvent.LoadBooking -> loadBooking(event.bookingId)
+            is ModifyBookingUiEvent.OnUbicacionRecogidaChange -> _state.update { it.copy(ubicacionRecogida = event.ubicacion, error = null) }
+            is ModifyBookingUiEvent.OnUbicacionDevolucionChange -> _state.update { it.copy(ubicacionDevolucion = event.ubicacion, error = null) }
+            is ModifyBookingUiEvent.OnFechaRecogidaChange -> onFechaRecogidaChanged(event.fecha, event.hora)
+            is ModifyBookingUiEvent.OnFechaDevolucionChange -> onFechaDevolucionChanged(event.fecha, event.hora)
+            ModifyBookingUiEvent.GuardarCambios -> guardarCambios()
+            else -> Unit
+        }
+    }
+
+    private fun loadBooking(bookingId: Int) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-
-            // Cargar ubicaciones
             val ubicaciones = getUbicacionesUseCase()
-
-            // Cargar reservación
             val reservacion = getReservacionByIdUseCase(bookingId)
 
             reservacion?.let { r ->
@@ -60,18 +67,9 @@ class ModifyBookingViewModel @Inject constructor(
         }
     }
 
-    fun onUbicacionRecogidaChanged(ubicacion: Ubicacion) {
-        _state.update { it.copy(ubicacionRecogida = ubicacion, error = null) }
-    }
-
-    fun onUbicacionDevolucionChanged(ubicacion: Ubicacion) {
-        _state.update { it.copy(ubicacionDevolucion = ubicacion, error = null) }
-    }
-
-    fun onFechaRecogidaChanged(fecha: LocalDate, hora: LocalTime) {
+    private fun onFechaRecogidaChanged(fecha: LocalDate, hora: LocalTime) {
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-
         _state.update {
             it.copy(
                 fechaRecogida = "${fecha.format(dateFormatter)} - ${hora.format(timeFormatter)}",
@@ -82,10 +80,9 @@ class ModifyBookingViewModel @Inject constructor(
         }
     }
 
-    fun onFechaDevolucionChanged(fecha: LocalDate, hora: LocalTime) {
+    private fun onFechaDevolucionChanged(fecha: LocalDate, hora: LocalTime) {
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-
         _state.update {
             it.copy(
                 fechaDevolucion = "${fecha.format(dateFormatter)} - ${hora.format(timeFormatter)}",
@@ -96,64 +93,33 @@ class ModifyBookingViewModel @Inject constructor(
         }
     }
 
-    fun onLugarRecogidaChanged(value: String) {}
-    fun onLugarDevolucionChanged(value: String) {}
-
-    fun guardarCambios() {
+    private fun guardarCambios() {
         viewModelScope.launch {
-            val currentState = _state.value
+            val s = _state.value
 
-            // Validaciones
-            if (currentState.ubicacionRecogida == null) {
-                _state.update { it.copy(error = "Selecciona el lugar de recogida") }
-                return@launch
-            }
-            if (currentState.ubicacionDevolucion == null) {
-                _state.update { it.copy(error = "Selecciona el lugar de devolución") }
-                return@launch
-            }
-            if (currentState.fechaRecogidaDate.isEmpty()) {
-                _state.update { it.copy(error = "Selecciona la fecha de recogida") }
-                return@launch
-            }
-            if (currentState.fechaDevolucionDate.isEmpty()) {
-                _state.update { it.copy(error = "Selecciona la fecha de devolución") }
-                return@launch
+            when {
+                s.ubicacionRecogida == null -> { _state.update { it.copy(error = "Selecciona el lugar de recogida") }; return@launch }
+                s.ubicacionDevolucion == null -> { _state.update { it.copy(error = "Selecciona el lugar de devolución") }; return@launch }
+                s.fechaRecogidaDate.isEmpty() -> { _state.update { it.copy(error = "Selecciona la fecha de recogida") }; return@launch }
+                s.fechaDevolucionDate.isEmpty() -> { _state.update { it.copy(error = "Selecciona la fecha de devolución") }; return@launch }
             }
 
             _state.update { it.copy(isLoading = true, error = null) }
 
-            // Llamar al use case para actualizar
             val result = updateReservacionUseCase(
-                reservacionId = currentState.bookingId,
-                ubicacionRecogidaId = currentState.ubicacionRecogida.ubicacionId,
-                ubicacionDevolucionId = currentState.ubicacionDevolucion.ubicacionId,
-                fechaRecogida = currentState.fechaRecogidaDate,
-                horaRecogida = currentState.horaRecogidaTime,
-                fechaDevolucion = currentState.fechaDevolucionDate,
-                horaDevolucion = currentState.horaDevolucionTime
+                reservacionId = s.bookingId,
+                ubicacionRecogidaId = s.ubicacionRecogida!!.ubicacionId,
+                ubicacionDevolucionId = s.ubicacionDevolucion!!.ubicacionId,
+                fechaRecogida = s.fechaRecogidaDate,
+                horaRecogida = s.horaRecogidaTime,
+                fechaDevolucion = s.fechaDevolucionDate,
+                horaDevolucion = s.horaDevolucionTime
             )
 
             when (result) {
-                is Resource.Success -> {
-                    _state.update {
-                        it.copy(
-                            isLoading = false,
-                            saveSuccess = true
-                        )
-                    }
-                }
-                is Resource.Error -> {
-                    _state.update {
-                        it.copy(
-                            isLoading = false,
-                            error = result.message ?: "Error al guardar"
-                        )
-                    }
-                }
-                is Resource.Loading -> {
-                    _state.update { it.copy(isLoading = true) }
-                }
+                is Resource.Success -> _state.update { it.copy(isLoading = false, saveSuccess = true) }
+                is Resource.Error -> _state.update { it.copy(isLoading = false, error = result.message ?: "Error al guardar") }
+                is Resource.Loading -> {}
             }
         }
     }
