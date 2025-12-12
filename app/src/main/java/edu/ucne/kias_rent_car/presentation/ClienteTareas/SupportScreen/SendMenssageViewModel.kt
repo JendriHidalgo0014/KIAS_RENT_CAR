@@ -15,33 +15,22 @@ import javax.inject.Inject
 class SendMessageViewModel @Inject constructor(
     private val sendMensajeUseCase: SendMensajeUseCase
 ) : ViewModel() {
-
     private val _state = MutableStateFlow(SendMessageUiState())
     val state: StateFlow<SendMessageUiState> = _state.asStateFlow()
 
-    fun onAsuntoChanged(value: String) {
-        _state.update { it.copy(asunto = value) }
+    fun onEvent(event: SendMessageUiEvent) {
+        when (event) {
+            is SendMessageUiEvent.OnAsuntoChange -> _state.update { it.copy(asunto = event.asunto) }
+            is SendMessageUiEvent.OnMensajeChange -> _state.update { it.copy(mensaje = event.mensaje) }
+            SendMessageUiEvent.EnviarMensaje -> enviarMensaje()
+            else -> Unit
+        }
     }
-
-    fun onMensajeChanged(value: String) {
-        _state.update { it.copy(mensaje = value) }
-    }
-
-    fun enviarMensaje() {
+    private fun enviarMensaje() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-
-            sendMensajeUseCase(
-                asunto = _state.value.asunto,
-                mensaje = _state.value.mensaje
-            )
-
-            _state.update {
-                it.copy(
-                    isLoading = false,
-                    messageSent = true
-                )
-            }
+            sendMensajeUseCase(asunto = _state.value.asunto, mensaje = _state.value.mensaje)
+            _state.update { it.copy(isLoading = false, messageSent = true) }
         }
     }
 }
