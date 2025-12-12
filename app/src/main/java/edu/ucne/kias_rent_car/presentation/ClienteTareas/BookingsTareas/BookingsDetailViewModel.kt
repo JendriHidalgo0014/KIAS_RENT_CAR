@@ -17,29 +17,30 @@ class BookingDetailViewModel @Inject constructor(
     private val getReservacionByIdUseCase: GetReservacionByIdUseCase,
     private val cancelReservacionUseCase: CancelReservacionUseCase
 ) : ViewModel() {
-
     private val _state = MutableStateFlow(BookingDetailUiState())
     val state: StateFlow<BookingDetailUiState> = _state.asStateFlow()
 
-    fun loadBooking(bookingId: Int) {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-
-            val reservacion = getReservacionByIdUseCase(bookingId)
-
-            _state.update {
-                it.copy(
-                    reservacion = reservacion,
-                    isLoading = false
-                )
-            }
+    fun onEvent(event: BookingDetailUiEvent) {
+        when (event) {
+            is BookingDetailUiEvent.LoadBooking -> loadBooking(event.bookingId)
+            BookingDetailUiEvent.CancelarReserva -> cancelarReserva()
+            else -> Unit
         }
     }
 
-    fun cancelarReserva() {
+    private fun loadBooking(bookingId: Int) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            val reservacion = getReservacionByIdUseCase(bookingId)
+            _state.update { it.copy(reservacion = reservacion, isLoading = false) }
+        }
+    }
+
+    private fun cancelarReserva() {
         viewModelScope.launch {
             _state.value.reservacion?.let { reservacion ->
                 cancelReservacionUseCase(reservacion.reservacionId)
+                _state.update { it.copy(cancelSuccess = true) }
                 loadBooking(reservacion.reservacionId)
             }
         }
