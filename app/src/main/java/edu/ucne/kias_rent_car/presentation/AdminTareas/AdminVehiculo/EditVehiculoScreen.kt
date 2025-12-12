@@ -258,9 +258,11 @@ private fun textFieldColors() = OutlinedTextFieldDefaults.colors(
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun EditVehiculoBodyPreview() {
-    val state = EditVehiculoUiState(modelo = "Kia Sportage",
-        descripcion = "SUV compacto",
-        precioPorDia = "120.00",
-        isFormValid = true)
-    EditVehiculoBody(state) {}
+    MaterialTheme {
+        val state = EditVehiculoUiState(modelo = "Kia Sportage",
+            descripcion = "SUV compacto",
+            precioPorDia = "120.00",
+            isFormValid = true)
+        EditVehiculoBody(state) {}
+    }
 }
