@@ -18,11 +18,39 @@ class PaymentViewModel @Inject constructor(
     private val createReservacionUseCase: CreateReservacionUseCase,
     private val getReservationConfigUseCase: GetReservationConfigUseCase
 ) : ViewModel() {
-
     private val _state = MutableStateFlow(PaymentUiState())
     val state: StateFlow<PaymentUiState> = _state.asStateFlow()
 
-    fun init(vehicleId: String) {
+    fun onEvent(event: PaymentUiEvent) {
+        when (event) {
+            is PaymentUiEvent.Init -> init(event.vehicleId)
+            is PaymentUiEvent.OnMetodoPagoChange -> {
+                _state.update { it.copy(metodoPago = event.metodo) }
+                validateForm()
+            }
+            is PaymentUiEvent.OnNumeroTarjetaChange -> {
+                _state.update { it.copy(numeroTarjeta = event.numero.filter { c -> c.isDigit() }.take(16)) }
+                validateForm()
+            }
+            is PaymentUiEvent.OnVencimientoChange -> {
+                _state.update { it.copy(vencimiento = event.vencimiento.filter { c -> c.isDigit() }.take(4)) }
+                validateForm()
+            }
+            is PaymentUiEvent.OnCvvChange -> {
+                _state.update { it.copy(cvv = event.cvv.filter { c -> c.isDigit() }.take(4)) }
+                validateForm()
+            }
+            is PaymentUiEvent.OnNombreTitularChange -> {
+                _state.update { it.copy(nombreTitular = event.nombre.filter { c -> c.isLetter() || c == ' ' }.take(30)) }
+                validateForm()
+            }
+            is PaymentUiEvent.OnGuardarTarjetaChange -> _state.update { it.copy(guardarTarjeta = event.guardar) }
+            PaymentUiEvent.ProcesarPago -> procesarPago()
+            else -> Unit
+        }
+    }
+
+    private fun init(vehicleId: String) {
         _state.update { it.copy(vehicleId = vehicleId) }
         loadReservationConfig()
     }
@@ -31,60 +59,39 @@ class PaymentViewModel @Inject constructor(
         viewModelScope.launch {
             val config = getReservationConfigUseCase()
             config?.let { cfg ->
-                _state.update { state ->
-                    state.copy(total = cfg.total)
-                }
+                _state.update { it.copy(total = cfg.total) }
             }
         }
     }
 
-    fun onEvent(event: PaymentEvent) {
-        when (event) {
-            is PaymentEvent.MetodoPagoChanged -> {
-                _state.update { it.copy(metodoPago = event.metodo) }
-            }
-            is PaymentEvent.NumeroTarjetaChanged -> {
-                _state.update { it.copy(numeroTarjeta = event.numero.take(16)) }
-            }
-            is PaymentEvent.VencimientoChanged -> {
-                _state.update { it.copy(vencimiento = event.vencimiento.take(5)) }
-            }
-            is PaymentEvent.CvvChanged -> {
-                _state.update { it.copy(cvv = event.cvv.take(4)) }
-            }
-            is PaymentEvent.NombreTitularChanged -> {
-                _state.update { it.copy(nombreTitular = event.nombre) }
-            }
-            is PaymentEvent.GuardarTarjetaChanged -> {
-                _state.update { it.copy(guardarTarjeta = event.guardar) }
-            }
-            is PaymentEvent.ProcesarPago -> procesarPago()
+    private fun validateForm() {
+        val s = _state.value
+        val isValid = when (s.metodoPago) {
+            MetodoPago.TARJETA -> s.numeroTarjeta.length >= 16 &&
+                    s.vencimiento.length >= 4 &&
+                    s.cvv.length >= 3 &&
+                    s.nombreTitular.isNotBlank()
+            MetodoPago.BILLETERA -> true
         }
+        _state.update { it.copy(isFormValid = isValid) }
     }
 
-    fun procesarPago() {
+    private fun procesarPago() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            _state.update { it.copy(isLoading = true) }
 
             when (val result = createReservacionUseCase()) {
                 is Resource.Success -> {
-                    val reservacion = result.data
                     _state.update {
                         it.copy(
                             isLoading = false,
                             paymentSuccess = true,
-                            // ✅ SOLO EL ID, NO TODO EL OBJETO
-                            reservacionId = reservacion?.reservacionId?.toString() ?: "0"
+                            reservacionId = result.data?.reservacionId?.toString() ?: "0"
                         )
                     }
                 }
                 is Resource.Error -> {
-                    _state.update {
-                        it.copy(
-                            isLoading = false,
-                            error = result.message
-                        )
-                    }
+                    _state.update { it.copy(isLoading = false) }
                 }
                 is Resource.Loading -> {
                     _state.update { it.copy(isLoading = true) }
