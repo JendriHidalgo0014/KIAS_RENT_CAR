@@ -15,16 +15,20 @@ import javax.inject.Inject
 class ReservationSuccessViewModel @Inject constructor(
     private val getReservacionByIdUseCase: GetReservacionByIdUseCase
 ) : ViewModel() {
-
     private val _state = MutableStateFlow(ReservationSuccessUiState())
     val state: StateFlow<ReservationSuccessUiState> = _state.asStateFlow()
 
-    fun loadReservacion(reservacionId: String) {
+    fun onEvent(event: ReservationSuccessUiEvent) {
+        when (event) {
+            is ReservationSuccessUiEvent.LoadReservacion -> loadReservacion(event.reservacionId)
+            else -> Unit
+        }
+    }
+
+    private fun loadReservacion(reservacionId: String) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-
             val reservacion = getReservacionByIdUseCase(reservacionId.toIntOrNull() ?: 0)
-
             _state.update {
                 it.copy(
                     codigoReserva = reservacion?.codigoReserva ?: "KR-XXXXXX",
