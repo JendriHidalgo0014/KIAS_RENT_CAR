@@ -184,10 +184,12 @@ private fun AdminVehiculoCard(vehiculo: Vehicle, onEdit: () -> Unit, onDelete: (
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun AdminVehiculosBodyPreview() {
-    val state = AdminVehiculosUiState(
-        vehiculos = listOf(
-            Vehicle("1", 1, "Kia Sportage", "SUV", VehicleCategory.SUV, 5, TransmisionType.AUTOMATIC, 120.0, "", true)
+    MaterialTheme {
+        val state = AdminVehiculosUiState(
+            vehiculos = listOf(
+                Vehicle("1", 1, "Kia Sportage", "SUV", VehicleCategory.SUV, 5, TransmisionType.AUTOMATIC, 120.0, "", true)
+            )
         )
-    )
-    AdminVehiculosBody(state) {}
+        AdminVehiculosBody(state) {}
+    }
 }
