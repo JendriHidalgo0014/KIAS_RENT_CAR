@@ -3,6 +3,7 @@ package edu.ucne.kias_rent_car.presentation.ClienteTareas.BookingsTareas
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import edu.ucne.kias_rent_car.domain.model.EstadoReserva
 import edu.ucne.kias_rent_car.domain.usecase.Reservacion.GetReservacionesUsuarioUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,6 @@ import javax.inject.Inject
 class BookingsViewModel @Inject constructor(
     private val getReservacionesUsuarioUseCase: GetReservacionesUsuarioUseCase
 ) : ViewModel() {
-
     private val _state = MutableStateFlow(BookingsUiState())
     val state: StateFlow<BookingsUiState> = _state.asStateFlow()
 
@@ -23,36 +23,26 @@ class BookingsViewModel @Inject constructor(
         loadReservaciones()
     }
 
-    fun onEvent(event: BookingsEvent) {
+    fun onEvent(event: BookingsUiEvent) {
         when (event) {
-            is BookingsEvent.FilterChanged -> {
+            is BookingsUiEvent.FilterChanged -> {
                 _state.update { it.copy(filtro = event.filter) }
                 loadReservaciones()
             }
-            is BookingsEvent.Refresh -> loadReservaciones()
+            BookingsUiEvent.Refresh -> loadReservaciones()
+            else -> Unit
         }
     }
 
     private fun loadReservaciones() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-
             val reservaciones = getReservacionesUsuarioUseCase()
             val filtradas = when (_state.value.filtro) {
-                BookingFilter.ACTUALES -> reservaciones.filter {
-                    it.estado in listOf("Confirmada", "Pendiente", "EnProceso")
-                }
-                BookingFilter.PASADAS -> reservaciones.filter {
-                    it.estado in listOf("Finalizada", "Finalizado", "Completada", "Completado", "Cancelada", "Cancelado")
-                }
+                BookingFilter.ACTUALES -> reservaciones.filter { it.estado in EstadoReserva.ESTADOS_ACTUALES }
+                BookingFilter.PASADAS -> reservaciones.filter { it.estado in EstadoReserva.ESTADOS_PASADOS }
             }
-
-            _state.update {
-                it.copy(
-                    reservaciones = filtradas,
-                    isLoading = false
-                )
-            }
+            _state.update { it.copy(reservaciones = filtradas, isLoading = false) }
         }
     }
 }
