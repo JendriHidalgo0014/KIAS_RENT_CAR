@@ -6,16 +6,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Message
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -27,7 +27,6 @@ import edu.ucne.kias_rent_car.presentation.Components.KiaBottomNavigation
 import edu.ucne.kias_rent_car.ui.theme.onErrorDark
 import edu.ucne.kias_rent_car.ui.theme.scrimLight
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SupportScreen(
     viewModel: SupportViewModel = hiltViewModel(),
@@ -39,31 +38,39 @@ fun SupportScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
-        viewModel.loadMensajes()
+        viewModel.onEvent(SupportUiEvent.LoadMensajes)
     }
 
+    SupportBody(
+        state = state,
+        onEvent = { event ->
+            when (event) {
+                SupportUiEvent.NavigateToSendMessage -> onNavigateToSendMessage()
+                SupportUiEvent.NavigateToHome -> onNavigateToHome()
+                SupportUiEvent.NavigateToBookings -> onNavigateToBookings()
+                SupportUiEvent.NavigateToProfile -> onNavigateToProfile()
+                else -> viewModel.onEvent(event)
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SupportBody(
+    state: SupportUiState,
+    onEvent: (SupportUiEvent) -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "KIA'S RENT CAR",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
+                title = { Text("KIA'S RENT CAR", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateToHome) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
+                    IconButton(onClick = { onEvent(SupportUiEvent.NavigateToHome) }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = scrimLight)
             )
         },
         bottomBar = {
@@ -71,119 +78,67 @@ fun SupportScreen(
                 currentRoute = "support",
                 onNavigate = { route ->
                     when (route) {
-                        "home" -> onNavigateToHome()
-                        "bookings" -> onNavigateToBookings()
+                        "home" -> onEvent(SupportUiEvent.NavigateToHome)
+                        "bookings" -> onEvent(SupportUiEvent.NavigateToBookings)
                         "support" -> { }
-                        "profile" -> onNavigateToProfile()
+                        "profile" -> onEvent(SupportUiEvent.NavigateToProfile)
                     }
                 }
             )
         },
         containerColor = scrimLight
-    ) { paddingValues ->
+    ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState())
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp).verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Centro de Ayuda",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+            Text("Centro de Ayuda", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Enviar Mensaje
-            SupportOption(
-                icon = Icons.AutoMirrored.Filled.Message,
-                title = "Enviar un Mensaje",
-                onClick = onNavigateToSendMessage
-            )
+            SupportOption(Icons.AutoMirrored.Filled.Message, "Enviar un Mensaje") {
+                onEvent(SupportUiEvent.NavigateToSendMessage)
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Contacto Directo",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+            Text("Contacto Directo", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Llamar
-            SupportOption(
-                icon = Icons.Default.Phone,
-                title = "Llámanos",
-                subtitle = "(555)123-4567",
-                onClick = { }
-            )
-
+            SupportOption(Icons.Default.Phone, "Llámanos", "(555)123-4567") { }
             Spacer(modifier = Modifier.height(12.dp))
-
-            // Email
-            SupportOption(
-                icon = Icons.Default.Email,
-                title = "Email",
-                subtitle = "soporte@kiasrent.com",
-                onClick = { }
-            )
+            SupportOption(Icons.Default.Email, "Email", "soporte@kiasrent.com") { }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Mis Mensajes
-            Text(
-                text = "Mis Mensajes",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+            Text("Mis Mensajes", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (state.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = onErrorDark)
-                }
-            } else if (state.mensajes.isEmpty()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF1E1E1E)
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No tienes mensajes",
-                            color = Color.Gray,
-                            fontSize = 14.sp
-                        )
+            when {
+                state.isLoading -> {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = onErrorDark)
                     }
                 }
-            } else {
-                state.mensajes.forEach { mensaje ->
-                    MensajeCard(
-                        asunto = mensaje.asunto,
-                        contenido = mensaje.contenido,
-                        respuesta = mensaje.respuesta,
-                        fecha = mensaje.fechaCreacion
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
+                state.mensajes.isEmpty() -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                            Text("No tienes mensajes", color = MaterialTheme.colorScheme.outline, fontSize = 14.sp)
+                        }
+                    }
+                }
+                else -> {
+                    state.mensajes.forEach { mensaje ->
+                        MensajeCard(mensaje.asunto, mensaje.contenido, mensaje.respuesta, mensaje.fechaCreacion)
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
                 }
             }
 
@@ -193,96 +148,36 @@ fun SupportScreen(
 }
 
 @Composable
-private fun MensajeCard(
-    asunto: String,
-    contenido: String,
-    respuesta: String?,
-    fecha: String
-) {
+private fun MensajeCard(asunto: String, contenido: String, respuesta: String?, fecha: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1E1E1E)
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // Encabezado
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = asunto,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = fecha.take(10),
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(asunto, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Text(fecha.take(10), fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Tu mensaje
-            Text(
-                text = "Tú:",
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
-            Text(
-                text = contenido,
-                fontSize = 14.sp,
-                color = Color.White,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            Text("Tú:", fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
+            Text(contenido, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis)
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Respuesta del admin
             if (!respuesta.isNullOrBlank()) {
-                HorizontalDivider(color = Color(0xFF2D2D2D))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Respuesta del Soporte:",
-                    fontSize = 12.sp,
-                    color = onErrorDark
-                )
+                Text("Respuesta del Soporte:", fontSize = 12.sp, color = onErrorDark)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = respuesta,
-                    fontSize = 14.sp,
-                    color = Color.White
-                )
+                Text(respuesta, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
             } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Schedule,
-                        contentDescription = null,
-                        tint = Color.Gray,
-                        modifier = Modifier.size(16.dp)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Schedule, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Esperando respuesta...",
-                        fontSize = 12.sp,
-                        color = Color.Gray,
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                    )
+                    Text("Esperando respuesta...", fontSize = 12.sp, color = MaterialTheme.colorScheme.outline, fontStyle = FontStyle.Italic)
                 }
             }
         }
@@ -290,131 +185,29 @@ private fun MensajeCard(
 }
 
 @Composable
-private fun SupportOption(
-    icon: ImageVector,
-    title: String,
-    subtitle: String? = null,
-    onClick: () -> Unit
-) {
+private fun SupportOption(icon: ImageVector, title: String, subtitle: String? = null, onClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1E1E1E)
-        ),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = onErrorDark,
-                modifier = Modifier.size(24.dp)
-            )
-
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = onErrorDark, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.width(16.dp))
-
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White
-                )
-                subtitle?.let {
-                    Text(
-                        text = it,
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
-                }
+                Text(title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                subtitle?.let { Text(it, fontSize = 14.sp, color = MaterialTheme.colorScheme.outline) }
             }
-
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = Color.Gray
-            )
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outline)
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
-private fun SupportScreenPreview() {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "KIA'S RENT CAR",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
-            )
-        },
-        containerColor = scrimLight
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp)
-        ) {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Centro de Ayuda",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            SupportOption(
-                icon = Icons.AutoMirrored.Filled.Message,
-                title = "Enviar un Mensaje",
-                onClick = {}
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Contacto Directo",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            SupportOption(
-                icon = Icons.Default.Phone,
-                title = "Llámanos",
-                subtitle = "(555)123-4567",
-                onClick = {}
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            SupportOption(
-                icon = Icons.Default.Email,
-                title = "Email",
-                subtitle = "soporte@kiasrent.com",
-                onClick = {}
-            )
-        }
+private fun SupportBodyPreview() {
+    MaterialTheme {
+        val state = SupportUiState()
+        SupportBody(state) {}
     }
 }
