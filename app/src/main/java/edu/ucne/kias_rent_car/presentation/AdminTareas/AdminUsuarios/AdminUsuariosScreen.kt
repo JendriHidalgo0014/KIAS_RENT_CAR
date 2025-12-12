@@ -14,7 +14,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -25,8 +24,6 @@ import edu.ucne.kias_rent_car.domain.model.Usuario
 import edu.ucne.kias_rent_car.presentation.Components.AdminBottomNavigation
 import edu.ucne.kias_rent_car.ui.theme.onErrorDark
 import edu.ucne.kias_rent_car.ui.theme.scrimLight
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminUsuariosScreen(
     viewModel: AdminUsuariosViewModel = hiltViewModel(),
@@ -38,28 +35,46 @@ fun AdminUsuariosScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    AdminUsuariosBody(
+        state = state,
+        onEvent = { event ->
+            when (event) {
+                AdminUsuariosUiEvent.NavigateBack -> onNavigateBack()
+                AdminUsuariosUiEvent.NavigateToHome -> onNavigateToHome()
+                AdminUsuariosUiEvent.NavigateToReservas -> onNavigateToReservas()
+                AdminUsuariosUiEvent.NavigateToVehiculos -> onNavigateToVehiculos()
+                AdminUsuariosUiEvent.NavigateToProfile -> onNavigateToProfile()
+                else -> viewModel.onEvent(event)
+            }
+        }
+    )
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdminUsuariosBody(
+    state: AdminUsuariosUiState,
+    onEvent: (AdminUsuariosUiEvent) -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "KIA'S RENT CAR",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = { onEvent(AdminUsuariosUiEvent.NavigateBack) }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = scrimLight)
             )
         },
         bottomBar = {
@@ -67,20 +82,20 @@ fun AdminUsuariosScreen(
                 currentRoute = "admin_usuarios",
                 onNavigate = { route ->
                     when (route) {
-                        "admin_home" -> onNavigateToHome()
-                        "admin_reservas" -> onNavigateToReservas()
-                        "admin_vehiculos" -> onNavigateToVehiculos()
-                        "admin_profile" -> onNavigateToProfile()
+                        "admin_home" -> onEvent(AdminUsuariosUiEvent.NavigateToHome)
+                        "admin_reservas" -> onEvent(AdminUsuariosUiEvent.NavigateToReservas)
+                        "admin_vehiculos" -> onEvent(AdminUsuariosUiEvent.NavigateToVehiculos)
+                        "admin_profile" -> onEvent(AdminUsuariosUiEvent.NavigateToProfile)
                     }
                 }
             )
         },
         containerColor = scrimLight
-    ) { paddingValues ->
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(padding)
                 .padding(horizontal = 20.dp)
         ) {
             Spacer(modifier = Modifier.height(16.dp))
@@ -89,26 +104,24 @@ fun AdminUsuariosScreen(
                 text = "Gestión de Usuarios",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-            // Búsqueda
+
             OutlinedTextField(
                 value = state.searchQuery,
-                onValueChange = { viewModel.onSearchChanged(it) },
-                placeholder = { Text("Buscar usuario...", color = Color.Gray) },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, null, tint = Color.Gray)
-                },
+                onValueChange = { onEvent(AdminUsuariosUiEvent.OnSearchChange(it)) },
+                placeholder = { Text("Buscar usuario...", color = MaterialTheme.colorScheme.outline) },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.outline) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedContainerColor = Color(0xFF1E1E1E),
-                    unfocusedContainerColor = Color(0xFF1E1E1E),
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedBorderColor = onErrorDark,
-                    unfocusedBorderColor = Color.Gray
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
                 ),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true
@@ -117,25 +130,18 @@ fun AdminUsuariosScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (state.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = onErrorDark)
                 }
             } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(state.usuarios) { usuario ->
                         UsuarioCard(
                             usuario = usuario,
-                            onDelete = { viewModel.deleteUsuario(usuario.id) }
+                            onDelete = { onEvent(AdminUsuariosUiEvent.DeleteUsuario(usuario.id)) }
                         )
                     }
-                    item {
-                        Spacer(modifier = Modifier.height(80.dp))
-                    }
+                    item { Spacer(modifier = Modifier.height(80.dp)) }
                 }
             }
         }
@@ -149,18 +155,13 @@ private fun UsuarioCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1E1E1E)
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar
             Box(
                 modifier = Modifier
                     .size(50.dp)
@@ -170,7 +171,7 @@ private fun UsuarioCard(
             ) {
                 Text(
                     text = usuario.nombre.take(1).uppercase(),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
@@ -183,111 +184,38 @@ private fun UsuarioCard(
                     text = usuario.nombre,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = usuario.rol,
                     fontSize = 12.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
 
             IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Eliminar",
-                    tint = onErrorDark
-                )
+                Icon(Icons.Default.Delete, "Eliminar", tint = onErrorDark)
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
-private fun AdminUsuariosScreenPreview() {
-    val usuariosEjemplo = listOf(
-        Usuario(id = 1, nombre = "Juan Pérez", email = "juan@test.com", telefono = "1234567890", rol = "Cliente"),
-        Usuario(id = 2, nombre = "María García", email = "maria@test.com", telefono = null, rol = "Cliente"),
-        Usuario(id = 3, nombre = "Carlos López", email = "carlos@test.com", telefono = "0987654321", rol = "Admin")
-    )
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "KIA'S RENT CAR",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = {}) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
+private fun AdminUsuariosBodyPreview() {
+    MaterialTheme {
+        val state = AdminUsuariosUiState(
+            usuarios = listOf(
+                Usuario(id = 1, nombre = "Juan Pérez",
+                    email = "juan@test.com",
+                    telefono = "1234567890",
+                    rol = "Cliente"),
+                Usuario(id = 2, nombre = "María García",
+                    email = "maria@test.com",
+                    telefono = null,
+                    rol = "Admin")
             )
-        },
-        containerColor = scrimLight
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp)
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Gestión de Usuarios",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = "",
-                onValueChange = {},
-                placeholder = { Text("Buscar usuario...", color = Color.Gray) },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, null, tint = Color.Gray)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedContainerColor = Color(0xFF1E1E1E),
-                    unfocusedContainerColor = Color(0xFF1E1E1E),
-                    focusedBorderColor = onErrorDark,
-                    unfocusedBorderColor = Color.Gray
-                ),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(usuariosEjemplo) { usuario ->
-                    UsuarioCard(
-                        usuario = usuario,
-                        onDelete = {}
-                    )
-                }
-            }
-        }
+        )
+        AdminUsuariosBody(state) {}
     }
 }
