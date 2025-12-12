@@ -16,7 +16,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -30,98 +29,89 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReservationConfigScreen(
     viewModel: ReservationConfigViewModel = hiltViewModel(),
     vehicleId: String,
     onNavigateBack: () -> Unit,
-    onContinue: (String) -> Unit  // Navega a PaymentScreen con vehicleId
+    onContinue: (String) -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(vehicleId) {
-        viewModel.init(vehicleId)
+        viewModel.onEvent(ReservationConfigUiEvent.Init(vehicleId))
     }
 
+    LaunchedEffect(state.configSaved) {
+        if (state.configSaved) onContinue(vehicleId)
+    }
+
+    ReservationConfigBody(
+        state = state,
+        onEvent = { event ->
+            when (event) {
+                ReservationConfigUiEvent.NavigateBack -> onNavigateBack()
+                else -> viewModel.onEvent(event)
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReservationConfigBody(
+    state: ReservationConfigUiState,
+    onEvent: (ReservationConfigUiEvent) -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "KIA'S RENT CAR",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
+                title = { Text("KIA'S RENT CAR", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
+                    IconButton(onClick = { onEvent(ReservationConfigUiEvent.NavigateBack) }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = scrimLight)
             )
         },
         containerColor = scrimLight
-    ) { paddingValues ->
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(padding)
                 .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Título
-            Text(
-                text = "Configura tu Reserva",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+            Text("Configura tu Reserva", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Lugar de Recogida
-            Text(
-                text = "Lugar de Recogida",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
+            Text("Lugar de Recogida", fontSize = 14.sp, color = MaterialTheme.colorScheme.outline)
             Spacer(modifier = Modifier.height(8.dp))
             UbicacionDropdown(
                 selectedUbicacion = state.lugarRecogida,
                 ubicaciones = state.ubicaciones,
                 placeholder = "Selecciona lugar de recogida",
-                onUbicacionSelected = { viewModel.onEvent(ReservationConfigEvent.LugarRecogidaChanged(it)) }
+                onUbicacionSelected = { onEvent(ReservationConfigUiEvent.OnLugarRecogidaChange(it)) }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Lugar de Devolución
-            Text(
-                text = "Lugar de Devolución",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
+            Text("Lugar de Devolución", fontSize = 14.sp, color = MaterialTheme.colorScheme.outline)
             Spacer(modifier = Modifier.height(8.dp))
             UbicacionDropdown(
                 selectedUbicacion = state.lugarDevolucion,
                 ubicaciones = state.ubicaciones,
                 placeholder = "Selecciona lugar de devolución",
-                onUbicacionSelected = { viewModel.onEvent(ReservationConfigEvent.LugarDevolucionChanged(it)) }
+                onUbicacionSelected = { onEvent(ReservationConfigUiEvent.OnLugarDevolucionChange(it)) }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Fecha y Hora de Recogida
             DateTimeSelector(
                 title = "Fecha y Hora de Recogida",
                 subtitle = state.fechaRecogida?.let { fecha ->
@@ -129,15 +119,14 @@ fun ReservationConfigScreen(
                         "${fecha.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))} - ${hora.format(DateTimeFormatter.ofPattern("HH:mm"))}"
                     }
                 } ?: "Elige fecha y hora",
-                onDateSelected = { viewModel.onEvent(ReservationConfigEvent.FechaRecogidaChanged(it)) },
-                onTimeSelected = { viewModel.onEvent(ReservationConfigEvent.HoraRecogidaChanged(it)) },
+                onDateSelected = { onEvent(ReservationConfigUiEvent.OnFechaRecogidaChange(it)) },
+                onTimeSelected = { onEvent(ReservationConfigUiEvent.OnHoraRecogidaChange(it)) },
                 selectedDate = state.fechaRecogida,
                 selectedTime = state.horaRecogida
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Fecha y Hora de Devolución
             DateTimeSelector(
                 title = "Fecha y Hora de Devolución",
                 subtitle = state.fechaDevolucion?.let { fecha ->
@@ -145,8 +134,8 @@ fun ReservationConfigScreen(
                         "${fecha.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))} - ${hora.format(DateTimeFormatter.ofPattern("HH:mm"))}"
                     }
                 } ?: "Elige fecha y hora",
-                onDateSelected = { viewModel.onEvent(ReservationConfigEvent.FechaDevolucionChanged(it)) },
-                onTimeSelected = { viewModel.onEvent(ReservationConfigEvent.HoraDevolucionChanged(it)) },
+                onDateSelected = { onEvent(ReservationConfigUiEvent.OnFechaDevolucionChange(it)) },
+                onTimeSelected = { onEvent(ReservationConfigUiEvent.OnHoraDevolucionChange(it)) },
                 selectedDate = state.fechaDevolucion,
                 selectedTime = state.horaDevolucion,
                 minDate = state.fechaRecogida
@@ -154,40 +143,18 @@ fun ReservationConfigScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Error
             state.error?.let { error ->
-                Text(
-                    text = error,
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                Text(error, color = MaterialTheme.colorScheme.error, fontSize = 14.sp, modifier = Modifier.padding(bottom = 8.dp))
             }
 
-            // Botón Continuar
             Button(
-                onClick = {
-                    if (viewModel.validateForm()) {
-                        viewModel.saveConfig()
-                        onContinue(vehicleId)
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
+                onClick = { onEvent(ReservationConfigUiEvent.Continuar) },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
                 enabled = state.isFormValid,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = onErrorDark,
-                    contentColor = Color.White,
-                    disabledContainerColor = onErrorDark.copy(alpha = 0.5f)
-                ),
+                colors = ButtonDefaults.buttonColors(containerColor = onErrorDark, disabledContainerColor = onErrorDark.copy(alpha = 0.5f)),
                 shape = RoundedCornerShape(28.dp)
             ) {
-                Text(
-                    text = "Continuar",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Continuar", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -205,44 +172,26 @@ private fun UbicacionDropdown(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it }
-    ) {
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
             value = selectedUbicacion?.nombre ?: "",
             onValueChange = {},
             readOnly = true,
-            placeholder = {
-                Text(
-                    text = placeholder,
-                    color = Color.Gray
-                )
-            },
+            placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.outline) },
             trailingIcon = {
                 Row {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = onErrorDark
-                    )
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = Color.Gray
-                    )
+                    Icon(Icons.Default.LocationOn, null, tint = onErrorDark)
+                    Icon(Icons.Default.KeyboardArrowDown, null, tint = MaterialTheme.colorScheme.outline)
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(),
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedBorderColor = Color.Gray,
-                unfocusedBorderColor = Color.Gray,
-                focusedContainerColor = Color(0xFF1E1E1E),
-                unfocusedContainerColor = Color(0xFF1E1E1E)
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedBorderColor = MaterialTheme.colorScheme.outline,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
             ),
             shape = RoundedCornerShape(12.dp)
         )
@@ -250,16 +199,11 @@ private fun UbicacionDropdown(
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.background(Color(0xFF2D2D2D))
+            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
         ) {
             ubicaciones.forEach { ubicacion ->
                 DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = ubicacion.nombre,
-                            color = Color.White
-                        )
-                    },
+                    text = { Text(ubicacion.nombre, color = MaterialTheme.colorScheme.onSurface) },
                     onClick = {
                         onUbicacionSelected(ubicacion)
                         expanded = false
@@ -285,245 +229,66 @@ private fun DateTimeSelector(
     var showTimePicker by remember { mutableStateOf(false) }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { showDatePicker = true },
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1E1E1E)
-        ),
+        modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.DateRange,
-                contentDescription = null,
-                tint = Color.Gray,
-                modifier = Modifier.size(24.dp)
-            )
-
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.DateRange, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.width(16.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White
-                )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = subtitle,
-                    fontSize = 14.sp,
-                    color = Color.Gray
-                )
+                Text(subtitle, fontSize = 14.sp, color = MaterialTheme.colorScheme.outline)
             }
-
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = Color.Gray
-            )
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outline)
         }
     }
 
-    // Date Picker Dialog
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = selectedDate?.toEpochDay()?.times(86400000)
-                ?: System.currentTimeMillis()
+            initialSelectedDateMillis = selectedDate?.toEpochDay()?.times(86400000) ?: System.currentTimeMillis()
         )
-
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            val date = LocalDate.ofEpochDay(millis / 86400000)
-                            onDateSelected(date)
-                        }
-                        showDatePicker = false
-                        showTimePicker = true
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        onDateSelected(LocalDate.ofEpochDay(millis / 86400000))
                     }
-                ) {
-                    Text("Siguiente", color = onErrorDark)
-                }
+                    showDatePicker = false
+                    showTimePicker = true
+                }) { Text("Siguiente", color = onErrorDark) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancelar", color = Color.Gray)
-                }
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar", color = MaterialTheme.colorScheme.outline) }
             }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        ) { DatePicker(state = datePickerState) }
     }
 
-    // Time Picker Dialog
     if (showTimePicker) {
-        val timePickerState = rememberTimePickerState(
-            initialHour = selectedTime?.hour ?: 10,
-            initialMinute = selectedTime?.minute ?: 0
-        )
-
+        val timePickerState = rememberTimePickerState(initialHour = selectedTime?.hour ?: 10, initialMinute = selectedTime?.minute ?: 0)
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        onTimeSelected(LocalTime.of(timePickerState.hour, timePickerState.minute))
-                        showTimePicker = false
-                    }
-                ) {
-                    Text("Aceptar", color = onErrorDark)
-                }
+                TextButton(onClick = {
+                    onTimeSelected(LocalTime.of(timePickerState.hour, timePickerState.minute))
+                    showTimePicker = false
+                }) { Text("Aceptar", color = onErrorDark) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) {
-                    Text("Cancelar", color = Color.Gray)
-                }
+                TextButton(onClick = { showTimePicker = false }) { Text("Cancelar", color = MaterialTheme.colorScheme.outline) }
             },
-            title = {
-                Text("Selecciona la hora", color = Color.White)
-            },
-            text = {
-                TimePicker(state = timePickerState)
-            },
-            containerColor = Color(0xFF2D2D2D)
+            title = { Text("Selecciona la hora", color = MaterialTheme.colorScheme.onSurface) },
+            text = { TimePicker(state = timePickerState) },
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
-private fun ReservationConfigScreenPreview() {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "KIA'S RENT CAR",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = {}) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
-            )
-        },
-        containerColor = scrimLight
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp)
-        ) {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Configura tu Reserva",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Text(text = "Lugar de Recogida", fontSize = 14.sp, color = Color.Gray)
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = "Aeropuerto SDQ",
-                onValueChange = {},
-                readOnly = true,
-                modifier = Modifier.fillMaxWidth(),
-                trailingIcon = {
-                    Icon(Icons.Default.LocationOn, null, tint = onErrorDark)
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedContainerColor = Color(0xFF1E1E1E),
-                    unfocusedContainerColor = Color(0xFF1E1E1E)
-                ),
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(text = "Lugar de Devolución", fontSize = 14.sp, color = Color.Gray)
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = "Aeropuerto SDQ",
-                onValueChange = {},
-                readOnly = true,
-                modifier = Modifier.fillMaxWidth(),
-                trailingIcon = {
-                    Icon(Icons.Default.LocationOn, null, tint = onErrorDark)
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedContainerColor = Color(0xFF1E1E1E),
-                    unfocusedContainerColor = Color(0xFF1E1E1E)
-                ),
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.DateRange, null, tint = Color.Gray)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = "Fecha y Hora de Recogida", fontSize = 16.sp, color = Color.White)
-                        Text(text = "15/01/2025 - 10:00", fontSize = 14.sp, color = Color.Gray)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Button(
-                onClick = {},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = onErrorDark),
-                shape = RoundedCornerShape(28.dp)
-            ) {
-                Text(text = "Continuar", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-    }
+private fun ReservationConfigBodyPreview() {
+    val state = ReservationConfigUiState()
+    ReservationConfigBody(state) {}
 }
