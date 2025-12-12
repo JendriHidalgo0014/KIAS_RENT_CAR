@@ -72,7 +72,7 @@ fun AdminReservasBody(
                 title = {
                     Text(
                         text = "KIA'S RENT CAR",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -81,7 +81,7 @@ fun AdminReservasBody(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 },
@@ -117,7 +117,7 @@ fun AdminReservasBody(
                 text = "Estado de Reservas",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -132,9 +132,9 @@ fun AdminReservasBody(
                         label = { Text(filtro) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = onErrorDark,
-                            selectedLabelColor = Color.White,
+                            selectedLabelColor = MaterialTheme.colorScheme.onBackground,
                             containerColor = Color(0xFF2D2D2D),
-                            labelColor = Color.White
+                            labelColor = MaterialTheme.colorScheme.onBackground
                         )
                     )
                 }
@@ -236,7 +236,7 @@ private fun AdminReservaCard(
                     text = reservacion.vehiculo?.modelo ?: "Vehículo",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onBackground
                 )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -273,50 +273,52 @@ private fun AdminReservaCard(
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun AdminReservasBodyPreview() {
-    val state = AdminReservasUiState(
-        isLoading = false,
-        filtroActual = EstadoReserva.TODOS,
-        reservaciones = listOf(
-            Reservacion(
-                reservacionId = 1,
-                usuarioId = 1,
-                vehiculoId = 1,
-                fechaRecogida = "2025-01-15",
-                horaRecogida = "10:00",
-                fechaDevolucion = "2025-01-20",
-                horaDevolucion = "10:00",
-                ubicacionRecogidaId = 1,
-                ubicacionDevolucionId = 1,
-                estado = EstadoReserva.CONFIRMADA,
-                subtotal = 500.0,
-                impuestos = 90.0,
-                total = 590.0,
-                codigoReserva = "KR-123456",
-                fechaCreacion = "2025-01-10",
-                usuario = Usuario(id = 1, nombre = "Juan Pérez", email = "juan@test.com", telefono = null, rol = "Cliente"),
-                vehiculo = null
-            ),
-            Reservacion(
-                reservacionId = 2,
-                usuarioId = 2,
-                vehiculoId = 2,
-                fechaRecogida = "2025-01-18",
-                horaRecogida = "09:00",
-                fechaDevolucion = "2025-01-22",
-                horaDevolucion = "09:00",
-                ubicacionRecogidaId = 1,
-                ubicacionDevolucionId = 1,
-                estado = EstadoReserva.EN_PROCESO,
-                subtotal = 600.0,
-                impuestos = 108.0,
-                total = 708.0,
-                codigoReserva = "KR-789012",
-                fechaCreacion = "2025-01-12",
-                usuario = Usuario(id = 2, nombre = "María García", email = "maria@test.com", telefono = null, rol = "Cliente"),
-                vehiculo = null
+    MaterialTheme {
+        val state = AdminReservasUiState(
+            isLoading = false,
+            filtroActual = EstadoReserva.TODOS,
+            reservaciones = listOf(
+                Reservacion(
+                    reservacionId = 1,
+                    usuarioId = 1,
+                    vehiculoId = 1,
+                    fechaRecogida = "2025-01-15",
+                    horaRecogida = "10:00",
+                    fechaDevolucion = "2025-01-20",
+                    horaDevolucion = "10:00",
+                    ubicacionRecogidaId = 1,
+                    ubicacionDevolucionId = 1,
+                    estado = EstadoReserva.CONFIRMADA,
+                    subtotal = 500.0,
+                    impuestos = 90.0,
+                    total = 590.0,
+                    codigoReserva = "KR-123456",
+                    fechaCreacion = "2025-01-10",
+                    usuario = Usuario(id = 1, nombre = "Juan Pérez", email = "juan@test.com", telefono = null, rol = "Cliente"),
+                    vehiculo = null
+                ),
+                Reservacion(
+                    reservacionId = 2,
+                    usuarioId = 2,
+                    vehiculoId = 2,
+                    fechaRecogida = "2025-01-18",
+                    horaRecogida = "09:00",
+                    fechaDevolucion = "2025-01-22",
+                    horaDevolucion = "09:00",
+                    ubicacionRecogidaId = 1,
+                    ubicacionDevolucionId = 1,
+                    estado = EstadoReserva.EN_PROCESO,
+                    subtotal = 600.0,
+                    impuestos = 108.0,
+                    total = 708.0,
+                    codigoReserva = "KR-789012",
+                    fechaCreacion = "2025-01-12",
+                    usuario = Usuario(id = 2, nombre = "María García", email = "maria@test.com", telefono = null, rol = "Cliente"),
+                    vehiculo = null
+                )
             )
         )
-    )
 
-    AdminReservasBody(state) {}
+        AdminReservasBody(state) {}
+    }
 }
