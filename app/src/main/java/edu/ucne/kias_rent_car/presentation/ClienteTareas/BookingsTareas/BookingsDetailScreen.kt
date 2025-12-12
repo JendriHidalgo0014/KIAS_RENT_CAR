@@ -12,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -24,11 +23,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
+import edu.ucne.kias_rent_car.domain.model.EstadoReserva
 import edu.ucne.kias_rent_car.presentation.Components.KiaBottomNavigation
 import edu.ucne.kias_rent_car.ui.theme.onErrorDark
 import edu.ucne.kias_rent_car.ui.theme.scrimLight
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingDetailScreen(
     viewModel: BookingDetailViewModel = hiltViewModel(),
@@ -43,31 +42,53 @@ fun BookingDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(bookingId) {
-        viewModel.loadBooking(bookingId)
+        viewModel.onEvent(BookingDetailUiEvent.LoadBooking(bookingId))
     }
 
+    BookingDetailBody(
+        state = state,
+        bookingId = bookingId,
+        onEvent = { event ->
+            when (event) {
+                BookingDetailUiEvent.NavigateBack -> onNavigateBack()
+                is BookingDetailUiEvent.NavigateToModify -> onNavigateToModify(event.bookingId)
+                BookingDetailUiEvent.NavigateToHome -> onNavigateToHome()
+                BookingDetailUiEvent.NavigateToBookings -> onNavigateToBookings()
+                BookingDetailUiEvent.NavigateToSupport -> onNavigateToSupport()
+                BookingDetailUiEvent.NavigateToProfile -> onNavigateToProfile()
+                else -> viewModel.onEvent(event)
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BookingDetailBody(
+    state: BookingDetailUiState,
+    bookingId: Int,
+    onEvent: (BookingDetailUiEvent) -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "KIA'S RENT CAR",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = { onEvent(BookingDetailUiEvent.NavigateBack) }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = scrimLight)
             )
         },
         bottomBar = {
@@ -75,170 +96,83 @@ fun BookingDetailScreen(
                 currentRoute = "bookings",
                 onNavigate = { route ->
                     when (route) {
-                        "home" -> onNavigateToHome()
-                        "bookings" -> onNavigateToBookings()
-                        "support" -> onNavigateToSupport()
-                        "profile" -> onNavigateToProfile()
+                        "home" -> onEvent(BookingDetailUiEvent.NavigateToHome)
+                        "bookings" -> onEvent(BookingDetailUiEvent.NavigateToBookings)
+                        "support" -> onEvent(BookingDetailUiEvent.NavigateToSupport)
+                        "profile" -> onEvent(BookingDetailUiEvent.NavigateToProfile)
                     }
                 }
             )
         },
         containerColor = scrimLight
-    ) { paddingValues ->
+    ) { padding ->
         if (state.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = onErrorDark)
             }
         } else {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .verticalScroll(rememberScrollState())
+                modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
             ) {
-                // Imagen del vehículo
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(state.reservacion?.vehiculo?.imagenUrl)
-                        .crossfade(true)
-                        .build(),
+                        .crossfade(true).build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
                     loading = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color(0xFF2D2D2D)),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(color = onErrorDark)
                         }
                     },
                     error = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color(0xFF2D2D2D)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.DirectionsCar,
-                                contentDescription = null,
-                                tint = Color.Gray,
-                                modifier = Modifier.size(60.dp)
-                            )
+                        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.DirectionsCar, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(60.dp))
                         }
                     }
                 )
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)
-                ) {
-                    // Nombre del vehículo
+                Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
                     Text(
                         text = state.reservacion?.vehiculo?.modelo ?: "",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = state.reservacion?.vehiculo?.categoria?.displayName ?: "",
-                            fontSize = 14.sp,
-                            color = Color.Gray
-                        )
-                        Text(
-                            text = "•",
-                            color = Color.Gray
-                        )
-                        Text(
-                            text = "${state.reservacion?.vehiculo?.asientos ?: 0} Asientos",
-                            fontSize = 14.sp,
-                            color = Color.Gray
-                        )
-                        Text(
-                            text = "•",
-                            color = Color.Gray
-                        )
-                        Text(
-                            text = state.reservacion?.vehiculo?.transmision?.displayName ?: "",
-                            fontSize = 14.sp,
-                            color = Color.Gray
-                        )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(state.reservacion?.vehiculo?.categoria?.displayName ?: "", fontSize = 14.sp, color = MaterialTheme.colorScheme.outline)
+                        Text("•", color = MaterialTheme.colorScheme.outline)
+                        Text("${state.reservacion?.vehiculo?.asientos ?: 0} Asientos", fontSize = 14.sp, color = MaterialTheme.colorScheme.outline)
+                        Text("•", color = MaterialTheme.colorScheme.outline)
+                        Text(state.reservacion?.vehiculo?.transmision?.displayName ?: "", fontSize = 14.sp, color = MaterialTheme.colorScheme.outline)
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Estado
                     val estadoColor = when (state.reservacion?.estado) {
-                        "Confirmada" -> Color(0xFF4CAF50)
-                        "Pendiente" -> Color(0xFFFF9800)
-                        "Cancelada" -> onErrorDark
-                        else -> Color.Gray
+                        EstadoReserva.CONFIRMADA -> MaterialTheme.colorScheme.primary
+                        EstadoReserva.PENDIENTE -> MaterialTheme.colorScheme.tertiary
+                        EstadoReserva.CANCELADA -> onErrorDark
+                        else -> MaterialTheme.colorScheme.outline
                     }
 
-                    Text(
-                        text = state.reservacion?.estado ?: "",
-                        fontSize = 14.sp,
-                        color = estadoColor,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(state.reservacion?.estado ?: "", fontSize = 14.sp, color = estadoColor, fontWeight = FontWeight.Bold)
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Detalles
-                    DetailRow(
-                        icon = Icons.Default.CalendarMonth,
-                        label = "Recogida",
-                        value = "${state.reservacion?.fechaRecogida} - ${state.reservacion?.horaRecogida}"
-                    )
-
+                    DetailRow(Icons.Default.CalendarMonth, "Recogida", "${state.reservacion?.fechaRecogida} - ${state.reservacion?.horaRecogida}")
                     Spacer(modifier = Modifier.height(12.dp))
-
-                    DetailRow(
-                        icon = Icons.Default.CalendarMonth,
-                        label = "Devolución",
-                        value = "${state.reservacion?.fechaDevolucion} - ${state.reservacion?.horaDevolucion}"
-                    )
-
+                    DetailRow(Icons.Default.CalendarMonth, "Devolución", "${state.reservacion?.fechaDevolucion} - ${state.reservacion?.horaDevolucion}")
                     Spacer(modifier = Modifier.height(12.dp))
-
-                    DetailRow(
-                        icon = Icons.Default.LocationOn,
-                        label = "Lugar de Recogida",
-                        value = state.reservacion?.ubicacionRecogida?.nombre ?: ""
-                    )
-
+                    DetailRow(Icons.Default.LocationOn, "Lugar de Recogida", state.reservacion?.ubicacionRecogida?.nombre ?: "")
                     Spacer(modifier = Modifier.height(12.dp))
-
-                    DetailRow(
-                        icon = Icons.Default.LocationOn,
-                        label = "Lugar de Devolución",
-                        value = state.reservacion?.ubicacionDevolucion?.nombre ?: ""
-                    )
+                    DetailRow(Icons.Default.LocationOn, "Lugar de Devolución", state.reservacion?.ubicacionDevolucion?.nombre ?: "")
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Price Breakdown
-                    Text(
-                        text = "Price Breakdown",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    Text("Desglose de Precio", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
 
                     Spacer(modifier = Modifier.height(12.dp))
 
@@ -246,57 +180,30 @@ fun BookingDetailScreen(
                     PriceDetailRow("Impuestos", "$${String.format("%.2f", state.reservacion?.impuestos ?: 0.0)}")
 
                     Spacer(modifier = Modifier.height(8.dp))
-                    Divider(color = Color.Gray.copy(alpha = 0.3f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Total",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "$${String.format("%.2f", state.reservacion?.total ?: 0.0)}",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = onErrorDark
-                        )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Total", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        Text("$${String.format("%.2f", state.reservacion?.total ?: 0.0)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = onErrorDark)
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Botones
-                    if (state.reservacion?.estado in listOf("Confirmada", "Pendiente")) {
+                    if (state.reservacion?.estado in listOf(EstadoReserva.CONFIRMADA, EstadoReserva.PENDIENTE)) {
                         Button(
-                            onClick = { onNavigateToModify(bookingId) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = onErrorDark
-                            ),
+                            onClick = { onEvent(BookingDetailUiEvent.NavigateToModify(bookingId)) },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = onErrorDark),
                             shape = RoundedCornerShape(25.dp)
                         ) {
-                            Text(
-                                text = "Modificar Reserva",
-                                fontWeight = FontWeight.Bold
-                            )
+                            Text("Modificar Reserva", fontWeight = FontWeight.Bold)
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        TextButton(
-                            onClick = { viewModel.cancelarReserva() },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "Cancelar Reserva",
-                                color = onErrorDark
-                            )
+                        TextButton(onClick = { onEvent(BookingDetailUiEvent.CancelarReserva) }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Cancelar Reserva", color = onErrorDark)
                         }
                     }
                 }
@@ -306,188 +213,30 @@ fun BookingDetailScreen(
 }
 
 @Composable
-private fun DetailRow(
-    icon: ImageVector,
-    label: String,
-    value: String
-) {
-    Row(
-        verticalAlignment = Alignment.Top
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = onErrorDark,
-            modifier = Modifier.size(20.dp)
-        )
+private fun DetailRow(icon: ImageVector, label: String, value: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        Icon(icon, null, tint = onErrorDark, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(12.dp))
         Column {
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
-            Text(
-                text = value,
-                fontSize = 14.sp,
-                color = Color.White
-            )
+            Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
+            Text(value, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
 
 @Composable
 private fun PriceDetailRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(text = label, fontSize = 14.sp, color = Color.Gray)
-        Text(text = value, fontSize = 14.sp, color = Color.White)
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, fontSize = 14.sp, color = MaterialTheme.colorScheme.outline)
+        Text(value, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
-private fun BookingDetailScreenPreview() {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "KIA'S RENT CAR",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = {}) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
-            )
-        },
-        containerColor = scrimLight
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .background(Color(0xFF2D2D2D)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DirectionsCar,
-                    contentDescription = null,
-                    tint = Color.Gray,
-                    modifier = Modifier.size(60.dp)
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            ) {
-                Text(
-                    text = "Kia Sportage",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(text = "SUV", fontSize = 14.sp, color = Color.Gray)
-                    Text(text = "•", color = Color.Gray)
-                    Text(text = "5 Asientos", fontSize = 14.sp, color = Color.Gray)
-                    Text(text = "•", color = Color.Gray)
-                    Text(text = "Automático", fontSize = 14.sp, color = Color.Gray)
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "Confirmada",
-                    fontSize = 14.sp,
-                    color = Color(0xFF4CAF50),
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                DetailRow(Icons.Default.CalendarMonth, "Recogida", "2025-01-15 - 10:00")
-                Spacer(modifier = Modifier.height(12.dp))
-                DetailRow(Icons.Default.CalendarMonth, "Devolución", "2025-01-20 - 10:00")
-                Spacer(modifier = Modifier.height(12.dp))
-                DetailRow(Icons.Default.LocationOn, "Lugar de Recogida", "Aeropuerto SDQ")
-                Spacer(modifier = Modifier.height(12.dp))
-                DetailRow(Icons.Default.LocationOn, "Lugar de Devolución", "Aeropuerto SDQ")
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    text = "Price Breakdown",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                PriceDetailRow("Subtotal", "$500.00")
-                PriceDetailRow("Impuestos", "$90.00")
-
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(color = Color.Gray.copy(alpha = 0.3f))
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Total",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Text(
-                        text = "$590.00",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = onErrorDark
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Button(
-                    onClick = {},
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = onErrorDark),
-                    shape = RoundedCornerShape(25.dp)
-                ) {
-                    Text(text = "Modificar Reserva", fontWeight = FontWeight.Bold)
-                }
-            }
-        }
+private fun BookingDetailBodyPreview() {
+    MaterialTheme {
+        val state = BookingDetailUiState()
+        BookingDetailBody(state, 1) {}
     }
 }
