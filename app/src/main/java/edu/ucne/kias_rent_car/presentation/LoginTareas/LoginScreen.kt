@@ -94,7 +94,7 @@ fun LoginBody(
                 text = "Iniciar Sesión",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             )
 
@@ -161,7 +161,7 @@ fun LoginBody(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 if (state.isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onBackground)
                 } else {
                     Text("Iniciar Sesión", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
@@ -186,8 +186,8 @@ fun LoginBody(
 
 @Composable
 private fun textFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedTextColor = Color.White,
-    unfocusedTextColor = Color.White,
+    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+    unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
     focusedBorderColor = onErrorDark,
     unfocusedBorderColor = Color.Gray,
     cursorColor = onErrorDark
@@ -196,9 +196,11 @@ private fun textFieldColors() = OutlinedTextFieldDefaults.colors(
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun LoginBodyPreview() {
-    val state = LoginUiState(
-        email = "usuario@email.com",
-        password = "password123"
-    )
-    LoginBody(state, {})
+    MaterialTheme {
+        val state = LoginUiState(
+            email = "usuario@email.com",
+            password = "password123"
+        )
+        LoginBody(state, {})
+    }
 }
