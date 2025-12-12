@@ -19,31 +19,37 @@ class ModifyEstadoReservaViewModel @Inject constructor(
 ) : ViewModel() {
     private val _state = MutableStateFlow(ModifyEstadoReservaUiState())
     val state: StateFlow<ModifyEstadoReservaUiState> = _state.asStateFlow()
-    fun loadReservacion(reservacionId: Int) {
+
+    fun onEvent(event: ModifyEstadoReservaUiEvent) {
+        when (event) {
+            is ModifyEstadoReservaUiEvent.LoadReservacion -> loadReservacion(event.reservacionId)
+            is ModifyEstadoReservaUiEvent.OnEstadoChange -> _state.update { it.copy(estadoSeleccionado = event.estado) }
+            ModifyEstadoReservaUiEvent.GuardarCambios -> guardarCambios()
+            else -> Unit
+        }
+    }
+
+    private fun loadReservacion(reservacionId: Int) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
 
             val reservacion = getReservacionByIdUseCase(reservacionId)
 
-            reservacion?.let { r ->
-                _state.update {
-                    it.copy(
-                        reservacionId = r.reservacionId,
-                        codigoReserva = r.codigoReserva,
-                        nombreCliente = r.usuario?.nombre ?: "",
-                        vehiculo = r.vehiculo?.modelo ?: "",
-                        periodo = "${r.fechaRecogida} - ${r.fechaDevolucion}",
-                        estadoSeleccionado = r.estado,
-                        isLoading = false
-                    )
-                }
+            _state.update {
+                it.copy(
+                    reservacionId = reservacion?.reservacionId ?: 0,
+                    codigoReserva = reservacion?.codigoReserva ?: "",
+                    nombreCliente = reservacion?.usuario?.nombre ?: "",
+                    vehiculo = reservacion?.vehiculo?.modelo ?: "",
+                    periodo = "${reservacion?.fechaRecogida ?: ""} - ${reservacion?.fechaDevolucion ?: ""}",
+                    estadoSeleccionado = reservacion?.estado ?: "",
+                    isLoading = false
+                )
             }
         }
     }
-    fun onEstadoChanged(estado: String) {
-        _state.update { it.copy(estadoSeleccionado = estado) }
-    }
-    fun guardarCambios() {
+
+    private fun guardarCambios() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
 
