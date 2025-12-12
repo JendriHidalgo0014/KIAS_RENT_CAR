@@ -13,8 +13,6 @@ data class ModifyBookingUiState(
     val horaRecogidaTime: String = "",
     val fechaDevolucionDate: String = "",
     val horaDevolucionTime: String = "",
-    val lugarRecogida: String = "",  // Mantener para compatibilidad
-    val lugarDevolucion: String = "", // Mantener para compatibilidad
     val isLoading: Boolean = false,
     val saveSuccess: Boolean = false,
     val error: String? = null
