@@ -177,11 +177,13 @@ private fun AdminOptionCard(
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun AdminHomeScreenPreview() {
-    AdminHomeScreen(
-        onNavigateToVehiculos = {},
-        onNavigateToReservas = {},
-        onNavigateToUsuarios = {},
-        onNavigateToMensajes = {},
-        onNavigateToProfile = {}
-    )
+    MaterialTheme {
+        AdminHomeScreen(
+            onNavigateToVehiculos = {},
+            onNavigateToReservas = {},
+            onNavigateToUsuarios = {},
+            onNavigateToMensajes = {},
+            onNavigateToProfile = {}
+        )
+    }
 }

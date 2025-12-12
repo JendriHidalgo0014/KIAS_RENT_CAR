@@ -17,28 +17,37 @@ class ResponderMensajeViewModel @Inject constructor(
     private val getMensajeByIdUseCase: GetMensajeByIdUseCase,
     private val responderMensajeUseCase: ResponderMensajeUseCase
 ) : ViewModel() {
+
     private val _state = MutableStateFlow(ResponderMensajeUiState())
     val state: StateFlow<ResponderMensajeUiState> = _state.asStateFlow()
-    fun loadMensaje(mensajeId: Int) {
+
+    fun onEvent(event: ResponderMensajeUiEvent) {
+        when (event) {
+            is ResponderMensajeUiEvent.LoadMensaje -> loadMensaje(event.mensajeId)
+            is ResponderMensajeUiEvent.OnRespuestaChange -> _state.update { it.copy(respuesta = event.respuesta) }
+            ResponderMensajeUiEvent.EnviarRespuesta -> enviarRespuesta()
+            else -> Unit
+        }
+    }
+
+    private fun loadMensaje(mensajeId: Int) {
         viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+
             val mensaje = getMensajeByIdUseCase(mensajeId)
 
-            mensaje?.let { m ->
-                _state.update {
-                    it.copy(
-                        mensajeId = m.mensajeId,
-                        nombreUsuario = m.nombreUsuario,
-                        mensajeOriginal = m.contenido
-                    )
-                }
+            _state.update {
+                it.copy(
+                    mensajeId = mensaje?.mensajeId ?: 0,
+                    nombreUsuario = mensaje?.nombreUsuario ?: "",
+                    mensajeOriginal = mensaje?.contenido ?: "",
+                    isLoading = false
+                )
             }
         }
     }
 
-    fun onRespuestaChanged(value: String) {
-        _state.update { it.copy(respuesta = value) }
-    }
-    fun enviarRespuesta() {
+    private fun enviarRespuesta() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
 

@@ -3,7 +3,7 @@ package edu.ucne.kias_rent_car.presentation.AdminTareas.AdminReservas
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import edu.ucne.kias_rent_car.domain.model.Reservacion
+import edu.ucne.kias_rent_car.domain.model.EstadoReserva
 import edu.ucne.kias_rent_car.domain.usecase.Reservacion.GetAllReservacionesUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,36 +18,47 @@ class AdminReservasViewModel @Inject constructor(
 ) : ViewModel() {
     private val _state = MutableStateFlow(AdminReservasUiState())
     val state: StateFlow<AdminReservasUiState> = _state.asStateFlow()
-    private var todasLasReservaciones = listOf<Reservacion>()
 
     init {
         loadReservaciones()
     }
+
+    fun onEvent(event: AdminReservasEvent) {
+        when (event) {
+            is AdminReservasEvent.FiltroChanged -> {
+                _state.update { it.copy(filtroActual = event.filtro) }
+                loadReservaciones()
+            }
+            is AdminReservasEvent.Refresh -> loadReservaciones()
+            else -> Unit
+        }
+    }
+
     private fun loadReservaciones() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
 
-            todasLasReservaciones = getAllReservacionesUseCase()
+            val todas = getAllReservacionesUseCase()
+            val filtradas = when (_state.value.filtroActual) {
+                EstadoReserva.TODOS -> todas
+                EstadoReserva.RESERVADO -> todas.filter {
+                    it.estado in listOf(EstadoReserva.RESERVADO, EstadoReserva.CONFIRMADA)
+                }
+                EstadoReserva.EN_PROCESO -> todas.filter {
+                    it.estado in listOf(EstadoReserva.EN_PROCESO, EstadoReserva.EN_PROCESO_SIN_ESPACIO)
+                }
+                EstadoReserva.FINALIZADO -> todas.filter {
+                    it.estado in listOf(EstadoReserva.FINALIZADA, EstadoReserva.CANCELADA)
+                }
+                else -> todas
+            }
 
             _state.update {
                 it.copy(
-                    reservaciones = todasLasReservaciones,
+                    reservaciones = filtradas,
                     isLoading = false
                 )
             }
         }
-    }
-    fun onFiltroChanged(filtro: String) {
-        _state.update { it.copy(filtroActual = filtro) }
-
-        val filtradas = when (filtro) {
-            "Todos" -> todasLasReservaciones
-            "Reservado" -> todasLasReservaciones.filter { it.estado == "Confirmada" || it.estado == "Reservado" }
-            "En Proceso" -> todasLasReservaciones.filter { it.estado == "EnProceso" || it.estado == "En Proceso" }
-            "Finalizado" -> todasLasReservaciones.filter { it.estado == "Finalizada" }
-            else -> todasLasReservaciones
-        }
-
-        _state.update { it.copy(reservaciones = filtradas) }
     }
 }

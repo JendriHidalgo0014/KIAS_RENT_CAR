@@ -16,70 +16,57 @@ import javax.inject.Inject
 class LoginViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase
 ) : ViewModel() {
-
-    private val _uiState = MutableStateFlow(LoginUIState())
-    val uiState: StateFlow<LoginUIState> = _uiState.asStateFlow()
+    private val _state = MutableStateFlow(LoginUiState())
+    val state: StateFlow<LoginUiState> = _state.asStateFlow()
 
     fun onEvent(event: LoginUiEvent) {
         when (event) {
-            is LoginUiEvent.EmailChanged -> {
-                _uiState.update { it.copy(email = event.email, error = null) }
-            }
-            is LoginUiEvent.PasswordChanged -> {
-                _uiState.update { it.copy(password = event.password, error = null) }
-            }
-            is LoginUiEvent.Login -> {
-                realizarLogin()
-            }
-            is LoginUiEvent.TogglePasswordVisibility -> {
-                _uiState.update { it.copy(passwordVisible = !it.passwordVisible) }
-            }
-            is LoginUiEvent.ClearError -> {
-                _uiState.update { it.copy(error = null) }
-            }
+            is LoginUiEvent.OnEmailChange -> _state.update { it.copy(email = event.email) }
+            is LoginUiEvent.OnPasswordChange -> _state.update { it.copy(password = event.password) }
+            LoginUiEvent.TogglePasswordVisibility -> _state.update { it.copy(passwordVisible = !it.passwordVisible) }
+            LoginUiEvent.Login -> login()
+            LoginUiEvent.UserMessageShown -> _state.update { it.copy(userMessage = null) }
         }
     }
 
-    private fun realizarLogin() {
-        val state = _uiState.value
+    private fun esFormularioValido(): Boolean {
+        return _state.value.email.isNotBlank() && _state.value.password.isNotBlank()
+    }
 
-        if (!state.esFormularioValido()) {
-            _uiState.update {
-                it.copy(error = "Por favor completa todos los campos")
-            }
+    private fun login() {
+        if (!esFormularioValido()) {
+            _state.update { it.copy(userMessage = "Por favor completa todos los campos") }
             return
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _state.update { it.copy(isLoading = true) }
 
-            val resultado = loginUseCase(state.email, state.password)
+            val result = loginUseCase(_state.value.email, _state.value.password)
 
-            _uiState.update {
-                when (resultado) {
-                    is Resource.Success -> {
+            when (result) {
+                is Resource.Success -> {
+                    _state.update {
                         it.copy(
                             isLoading = false,
-                            loginExitoso = resultado.data,
-                            error = null
+                            loginExitoso = result.data
                         )
-                    }
-                    is Resource.Error -> {
-                        it.copy(
-                            isLoading = false,
-                            error = resultado.message,
-                            loginExitoso = null
-                        )
-                    }
-                    is Resource.Loading -> {
-                        it.copy(isLoading = true)
                     }
                 }
+                is Resource.Error -> {
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            userMessage = result.message ?: "Error al iniciar sesión"
+                        )
+                    }
+                }
+                is Resource.Loading -> {}
             }
         }
     }
 
     fun resetLoginExitoso() {
-        _uiState.update { it.copy(loginExitoso = null) }
+        _state.update { it.copy(loginExitoso = null) }
     }
 }

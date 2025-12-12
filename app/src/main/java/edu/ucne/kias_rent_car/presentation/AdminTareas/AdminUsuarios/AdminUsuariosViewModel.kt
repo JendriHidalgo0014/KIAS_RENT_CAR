@@ -25,23 +25,25 @@ class AdminUsuariosViewModel @Inject constructor(
     init {
         loadUsuarios()
     }
+
+    fun onEvent(event: AdminUsuariosUiEvent) {
+        when (event) {
+            is AdminUsuariosUiEvent.OnSearchChange -> onSearchChanged(event.query)
+            is AdminUsuariosUiEvent.DeleteUsuario -> deleteUsuario(event.id)
+            else -> Unit
+        }
+    }
+
     private fun loadUsuarios() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-
             todosLosUsuarios = getAllUsuariosUseCase()
-
-            _state.update {
-                it.copy(
-                    usuarios = todosLosUsuarios,
-                    isLoading = false
-                )
-            }
+            _state.update { it.copy(usuarios = todosLosUsuarios, isLoading = false) }
         }
     }
-    fun onSearchChanged(query: String) {
-        _state.update { it.copy(searchQuery = query) }
 
+    private fun onSearchChanged(query: String) {
+        _state.update { it.copy(searchQuery = query) }
         val filtrados = if (query.isBlank()) {
             todosLosUsuarios
         } else {
@@ -50,10 +52,10 @@ class AdminUsuariosViewModel @Inject constructor(
                         it.email.contains(query, ignoreCase = true)
             }
         }
-
         _state.update { it.copy(usuarios = filtrados) }
     }
-    fun deleteUsuario(id: Int) {
+
+    private fun deleteUsuario(id: Int) {
         viewModelScope.launch {
             deleteUsuarioUseCase(id)
             loadUsuarios()

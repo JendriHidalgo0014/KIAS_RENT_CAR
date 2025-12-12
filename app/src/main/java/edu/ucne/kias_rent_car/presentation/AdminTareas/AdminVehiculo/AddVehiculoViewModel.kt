@@ -16,43 +16,43 @@ import javax.inject.Inject
 class AddVehiculoViewModel @Inject constructor(
     private val createVehicleUseCase: CreateVehicleUseCase
 ) : ViewModel() {
-
     private val _state = MutableStateFlow(AddVehiculoUiState())
     val state: StateFlow<AddVehiculoUiState> = _state.asStateFlow()
 
-    fun onModeloChanged(value: String) {
-        _state.update { it.copy(modelo = value) }
+    fun onEvent(event: AddVehiculoUiEvent) {
+        when (event) {
+            is AddVehiculoUiEvent.OnModeloChange -> {
+                _state.update { it.copy(modelo = event.modelo) }
+                validateForm()
+            }
+            is AddVehiculoUiEvent.OnDescripcionChange -> {
+                _state.update { it.copy(descripcion = event.descripcion) }
+                validateForm()
+            }
+            is AddVehiculoUiEvent.OnCategoriaChange -> _state.update { it.copy(categoria = event.categoria) }
+            is AddVehiculoUiEvent.OnTransmisionChange -> _state.update { it.copy(transmision = event.transmision) }
+            is AddVehiculoUiEvent.OnAsientosChange -> _state.update { it.copy(asientos = event.asientos) }
+            is AddVehiculoUiEvent.OnPrecioChange -> {
+                _state.update { it.copy(precioPorDia = event.precio) }
+                validateForm()
+            }
+            is AddVehiculoUiEvent.OnFechaIngresoChange -> _state.update { it.copy(fechaIngreso = event.fecha) }
+            is AddVehiculoUiEvent.OnImagenUrlChange -> _state.update { it.copy(imagenUrl = event.url) }
+            AddVehiculoUiEvent.GuardarVehiculo -> guardarVehiculo()
+            else -> Unit
+        }
     }
 
-    fun onDescripcionChanged(value: String) {
-        _state.update { it.copy(descripcion = value) }
+    private fun validateForm() {
+        val s = _state.value
+        val isValid = s.modelo.isNotBlank() &&
+                s.descripcion.isNotBlank() &&
+                s.precioPorDia.isNotBlank() &&
+                (s.precioPorDia.toDoubleOrNull() ?: 0.0) > 0
+        _state.update { it.copy(isFormValid = isValid) }
     }
 
-    fun onFechaIngresoChanged(value: String) {
-        _state.update { it.copy(fechaIngreso = value) }
-    }
-
-    fun onPrecioChanged(value: String) {
-        _state.update { it.copy(precioPorDia = value) }
-    }
-
-    fun onImagenUrlChanged(value: String) {
-        _state.update { it.copy(imagenUrl = value) }
-    }
-
-    fun onCategoriaChanged(value: String) {
-        _state.update { it.copy(categoria = value) }
-    }
-
-    fun onAsientosChanged(value: Int) {
-        _state.update { it.copy(asientos = value) }
-    }
-
-    fun onTransmisionChanged(value: String) {
-        _state.update { it.copy(transmision = value) }
-    }
-
-    fun guardarVehiculo() {
+    private fun guardarVehiculo() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
@@ -67,22 +67,8 @@ class AddVehiculoViewModel @Inject constructor(
             )
 
             when (result) {
-                is Resource.Success<*> -> {
-                    _state.update {
-                        it.copy(
-                            isLoading = false,
-                            saveSuccess = true
-                        )
-                    }
-                }
-                is Resource.Error<*> -> {
-                    _state.update {
-                        it.copy(
-                            isLoading = false,
-                            error = result.message
-                        )
-                    }
-                }
+                is Resource.Success<*> -> _state.update { it.copy(isLoading = false, saveSuccess = true) }
+                is Resource.Error<*> -> _state.update { it.copy(isLoading = false, error = result.message) }
                 is Resource.Loading<*> -> {}
             }
         }

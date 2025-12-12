@@ -13,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -25,11 +24,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import edu.ucne.kias_rent_car.domain.model.Vehicle
+import edu.ucne.kias_rent_car.domain.model.VehicleCategory
+import edu.ucne.kias_rent_car.domain.model.TransmisionType
 import edu.ucne.kias_rent_car.presentation.Components.AdminBottomNavigation
 import edu.ucne.kias_rent_car.ui.theme.onErrorDark
 import edu.ucne.kias_rent_car.ui.theme.scrimLight
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminVehiculosScreen(
     viewModel: AdminVehiculosViewModel = hiltViewModel(),
@@ -42,41 +42,43 @@ fun AdminVehiculosScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    AdminVehiculosBody(
+        state = state,
+        onEvent = { event ->
+            when (event) {
+                AdminVehiculosUiEvent.NavigateBack -> onNavigateBack()
+                AdminVehiculosUiEvent.NavigateToAddVehiculo -> onNavigateToAddVehiculo()
+                is AdminVehiculosUiEvent.EditVehiculo -> onNavigateToEditVehiculo(event.id)
+                AdminVehiculosUiEvent.NavigateToHome -> onNavigateToHome()
+                AdminVehiculosUiEvent.NavigateToReservas -> onNavigateToReservas()
+                AdminVehiculosUiEvent.NavigateToProfile -> onNavigateToProfile()
+                else -> viewModel.onEvent(event)
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdminVehiculosBody(
+    state: AdminVehiculosUiState,
+    onEvent: (AdminVehiculosUiEvent) -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "KIA'S RENT CAR",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
+                title = { Text("KIA'S RENT CAR", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
+                    IconButton(onClick = { onEvent(AdminVehiculosUiEvent.NavigateBack) }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
-
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = scrimLight)
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToAddVehiculo,
-                containerColor = onErrorDark
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Agregar",
-                    tint = Color.White
-                )
+            FloatingActionButton(onClick = { onEvent(AdminVehiculosUiEvent.NavigateToAddVehiculo) }, containerColor = onErrorDark) {
+                Icon(Icons.Default.Add, "Agregar", tint = MaterialTheme.colorScheme.onPrimary)
             }
         },
         bottomBar = {
@@ -84,48 +86,38 @@ fun AdminVehiculosScreen(
                 currentRoute = "admin_vehiculos",
                 onNavigate = { route ->
                     when (route) {
-                        "admin_home" -> onNavigateToHome()
-                        "admin_reservas" -> onNavigateToReservas()
+                        "admin_home" -> onEvent(AdminVehiculosUiEvent.NavigateToHome)
+                        "admin_reservas" -> onEvent(AdminVehiculosUiEvent.NavigateToReservas)
                         "admin_vehiculos" -> { }
-                        "admin_profile" -> onNavigateToProfile()
+                        "admin_profile" -> onEvent(AdminVehiculosUiEvent.NavigateToProfile)
                     }
                 }
             )
         },
         containerColor = scrimLight
-    ) { paddingValues ->
+    ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp)
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp)
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Gestión de Vehículos",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+            Text("Gestión de Vehículos", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
 
             Spacer(modifier = Modifier.height(16.dp))
-            // Barra de búsqueda
+
             OutlinedTextField(
                 value = state.searchQuery,
-                onValueChange = { viewModel.onSearchChanged(it) },
-                placeholder = { Text("Buscar por modelo o matrícula", color = Color.Gray) },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, null, tint = Color.Gray)
-                },
+                onValueChange = { onEvent(AdminVehiculosUiEvent.OnSearchChange(it)) },
+                placeholder = { Text("Buscar por modelo", color = MaterialTheme.colorScheme.outline) },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.outline) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedContainerColor = Color(0xFF1E1E1E),
-                    unfocusedContainerColor = Color(0xFF1E1E1E),
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedBorderColor = onErrorDark,
-                    unfocusedBorderColor = Color.Gray
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
                 ),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true
@@ -134,243 +126,70 @@ fun AdminVehiculosScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (state.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = onErrorDark)
                 }
             } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(state.vehiculos) { vehiculo ->
                         AdminVehiculoCard(
                             vehiculo = vehiculo,
-                            onEdit = { onNavigateToEditVehiculo(vehiculo.id) },
-                            onDelete = { viewModel.deleteVehiculo(vehiculo.id) }
+                            onEdit = { onEvent(AdminVehiculosUiEvent.EditVehiculo(vehiculo.id)) },
+                            onDelete = { onEvent(AdminVehiculosUiEvent.DeleteVehiculo(vehiculo.id)) }
                         )
                     }
-                    item {
-                        Spacer(modifier = Modifier.height(80.dp))
-                    }
+                    item { Spacer(modifier = Modifier.height(80.dp)) }
                 }
             }
         }
     }
 }
+
 @Composable
-private fun AdminVehiculoCard(
-    vehiculo: Vehicle,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit
-) {
+private fun AdminVehiculoCard(vehiculo: Vehicle, onEdit: () -> Unit, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1E1E1E)
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Imagen
+        Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             SubcomposeAsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(vehiculo.imagenUrl)
-                    .crossfade(true)
-                    .build(),
+                model = ImageRequest.Builder(LocalContext.current).data(vehiculo.imagenUrl).crossfade(true).build(),
                 contentDescription = vehiculo.modelo,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(60.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                loading = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF2D2D2D))
-                    )
-                },
+                modifier = Modifier.size(60.dp).clip(RoundedCornerShape(8.dp)),
+                loading = { Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) },
                 error = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF2D2D2D)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DirectionsCar,
-                            contentDescription = null,
-                            tint = Color.Gray
-                        )
+                    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.DirectionsCar, null, tint = MaterialTheme.colorScheme.outline)
                     }
                 }
             )
-
             Spacer(modifier = Modifier.width(12.dp))
-
             Column(modifier = Modifier.weight(1f)) {
+                Text(vehiculo.modelo, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text("Matrícula: ABC-123", fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
                 Text(
-                    text = vehiculo.modelo,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                Text(
-                    text = "Matrícula: ABC-123",
+                    if (vehiculo.disponible) "Disponible" else "No disponible",
                     fontSize = 12.sp,
-                    color = Color.Gray
-                )
-                Text(
-                    text = if (vehiculo.disponible) "Estado: Disponible" else "Estado: No disponible",
-                    fontSize = 12.sp,
-                    color = if (vehiculo.disponible) Color(0xFF4CAF50) else onErrorDark
+                    color = if (vehiculo.disponible) MaterialTheme.colorScheme.primary else onErrorDark
                 )
             }
-            // Botones de acción
-            IconButton(onClick = onEdit) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Editar",
-                    tint = Color.White
-                )
-            }
-
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Eliminar",
-                    tint = onErrorDark
-                )
-            }
+            IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, "Editar", tint = MaterialTheme.colorScheme.onSurface) }
+            IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Eliminar", tint = onErrorDark) }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
-private fun AdminVehiculosScreenPreview() {
-    val vehiculosEjemplo = listOf(
-        Vehicle(
-            id = "1",
-            remoteId = 1,
-            modelo = "Kia Sportage",
-            descripcion = "SUV familiar",
-            categoria = edu.ucne.kias_rent_car.domain.model.VehicleCategory.SUV,
-            asientos = 5,
-            transmision = edu.ucne.kias_rent_car.domain.model.TransmisionType.AUTOMATIC,
-            precioPorDia = 120.0,
-            imagenUrl = "",
-            disponible = true
-        ),
-        Vehicle(
-            id = "2",
-            remoteId = 2,
-            modelo = "Kia K5",
-            descripcion = "Sedan deportivo",
-            categoria = edu.ucne.kias_rent_car.domain.model.VehicleCategory.SEDAN,
-            asientos = 5,
-            transmision = edu.ucne.kias_rent_car.domain.model.TransmisionType.AUTOMATIC,
-            precioPorDia = 100.0,
-            imagenUrl = "",
-            disponible = false
+private fun AdminVehiculosBodyPreview() {
+    MaterialTheme {
+        val state = AdminVehiculosUiState(
+            vehiculos = listOf(
+                Vehicle("1", 1, "Kia Sportage", "SUV", VehicleCategory.SUV, 5, TransmisionType.AUTOMATIC, 120.0, "", true)
+            )
         )
-    )
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "KIA'S RENT CAR",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = {}) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {},
-                containerColor = onErrorDark
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Agregar",
-                    tint = Color.White
-                )
-            }
-        },
-        containerColor = scrimLight
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp)
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Gestión de Vehículos",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = "",
-                onValueChange = {},
-                placeholder = { Text("Buscar por modelo o matrícula", color = Color.Gray) },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, null, tint = Color.Gray)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedContainerColor = Color(0xFF1E1E1E),
-                    unfocusedContainerColor = Color(0xFF1E1E1E),
-                    focusedBorderColor = onErrorDark,
-                    unfocusedBorderColor = Color.Gray
-                ),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(vehiculosEjemplo) { vehiculo ->
-                    AdminVehiculoCard(
-                        vehiculo = vehiculo,
-                        onEdit = {},
-                        onDelete = {}
-                    )
-                }
-            }
-        }
+        AdminVehiculosBody(state) {}
     }
 }

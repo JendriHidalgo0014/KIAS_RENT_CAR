@@ -15,10 +15,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import edu.ucne.kias_rent_car.domain.model.EstadoReserva
 import edu.ucne.kias_rent_car.ui.theme.onErrorDark
 import edu.ucne.kias_rent_car.ui.theme.scrimLight
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModifyEstadoReservaScreen(
     viewModel: ModifyEstadoReservaViewModel = hiltViewModel(),
@@ -29,7 +29,7 @@ fun ModifyEstadoReservaScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(reservacionId) {
-        viewModel.loadReservacion(reservacionId)
+        viewModel.onEvent(ModifyEstadoReservaUiEvent.LoadReservacion(reservacionId))
     }
 
     LaunchedEffect(state.saveSuccess) {
@@ -38,36 +38,51 @@ fun ModifyEstadoReservaScreen(
         }
     }
 
+    ModifyEstadoReservaBody(
+        state = state,
+        onEvent = { event ->
+            when (event) {
+                ModifyEstadoReservaUiEvent.NavigateBack -> onNavigateBack()
+                else -> viewModel.onEvent(event)
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ModifyEstadoReservaBody(
+    state: ModifyEstadoReservaUiState,
+    onEvent: (ModifyEstadoReservaUiEvent) -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "KIA'S RENT CAR",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = { onEvent(ModifyEstadoReservaUiEvent.NavigateBack) }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = scrimLight)
             )
         },
         containerColor = scrimLight
-    ) { paddingValues ->
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(padding)
                 .padding(horizontal = 20.dp)
         ) {
             Spacer(modifier = Modifier.height(16.dp))
@@ -76,12 +91,12 @@ fun ModifyEstadoReservaScreen(
                 text = "Modificar Estado de\nReserva",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 lineHeight = 32.sp
             )
 
             Spacer(modifier = Modifier.height(24.dp))
-            // Info de la reserva
+
             InfoRow("ID de Reserva", state.codigoReserva)
             InfoRow("Nombre del Cliente", state.nombreCliente)
             InfoRow("Vehículo", state.vehiculo)
@@ -93,13 +108,12 @@ fun ModifyEstadoReservaScreen(
                 text = "Seleccionar Nuevo Estado",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Spacer(modifier = Modifier.height(12.dp))
-            // Opciones de estado
-            val estados = listOf("Confirmada", "Cancelada", "En Proceso", "Finalizada")
-            estados.forEach { estado ->
+
+            EstadoReserva.OPCIONES_MODIFICAR.forEach { estado ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -108,7 +122,7 @@ fun ModifyEstadoReservaScreen(
                 ) {
                     RadioButton(
                         selected = state.estadoSeleccionado == estado,
-                        onClick = { viewModel.onEstadoChanged(estado) },
+                        onClick = { onEvent(ModifyEstadoReservaUiEvent.OnEstadoChange(estado)) },
                         colors = RadioButtonDefaults.colors(
                             selectedColor = onErrorDark,
                             unselectedColor = Color.Gray
@@ -116,30 +130,25 @@ fun ModifyEstadoReservaScreen(
                     )
                     Text(
                         text = estado,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 16.sp
                     )
                 }
             }
 
             Spacer(modifier = Modifier.weight(1f))
-            // Botón Guardar
+
             Button(
-                onClick = { viewModel.guardarCambios() },
+                onClick = { onEvent(ModifyEstadoReservaUiEvent.GuardarCambios) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 enabled = !state.isLoading,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = onErrorDark
-                ),
+                colors = ButtonDefaults.buttonColors(containerColor = onErrorDark),
                 shape = RoundedCornerShape(28.dp)
             ) {
                 if (state.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color.White
-                    )
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onBackground)
                 } else {
                     Text(
                         text = "Guardar Cambios",
@@ -153,6 +162,7 @@ fun ModifyEstadoReservaScreen(
         }
     }
 }
+
 @Composable
 private fun InfoRow(label: String, value: String) {
     Row(
@@ -162,118 +172,21 @@ private fun InfoRow(label: String, value: String) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(text = label, fontSize = 14.sp, color = Color.Gray)
-        Text(text = value, fontSize = 14.sp, color = Color.White)
+        Text(text = value, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
-private fun ModifyEstadoReservaScreenPreview() {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "KIA'S RENT CAR",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = {}) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = scrimLight
-                )
-            )
-        },
-        containerColor = scrimLight
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp)
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Modificar Estado de\nReserva",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                lineHeight = 32.sp
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            InfoRow("ID de Reserva", "KR-123456")
-            InfoRow("Nombre del Cliente", "Juan Pérez")
-            InfoRow("Vehículo", "Kia Sportage")
-            InfoRow("Periodo de Alquiler", "15/01 - 20/01/2025")
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Seleccionar Nuevo Estado",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.White
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            val estados = listOf("Confirmado", "Cancelado", "En Proceso", "Completado")
-            estados.forEach { estado ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = estado == "Confirmado",
-                        onClick = {},
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = onErrorDark,
-                            unselectedColor = Color.Gray
-                        )
-                    )
-                    Text(
-                        text = estado,
-                        color = Color.White,
-                        fontSize = 16.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Button(
-                onClick = {},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = onErrorDark
-                ),
-                shape = RoundedCornerShape(28.dp)
-            ) {
-                Text(
-                    text = "Guardar Cambios",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-        }
+private fun ModifyEstadoReservaBodyPreview() {
+    MaterialTheme {
+        val state = ModifyEstadoReservaUiState(
+            codigoReserva = "KR-123456",
+            nombreCliente = "Juan Pérez",
+            vehiculo = "Kia Sportage",
+            periodo = "15/01 - 20/01/2025",
+            estadoSeleccionado = EstadoReserva.CONFIRMADA
+        )
+        ModifyEstadoReservaBody(state) {}
     }
 }

@@ -1,10 +1,9 @@
-package edu.ucne.kias_rent_car.presentation.AdminTareas
+package edu.ucne.kias_rent_car.presentation.ProfileTareas
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import edu.ucne.kias_rent_car.domain.repository.UsuarioRepository
-import edu.ucne.kias_rent_car.presentation.ProfileTareas.AdminProfileUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,25 +23,33 @@ class AdminProfileViewModel @Inject constructor(
         loadUsuario()
     }
 
+    fun onEvent(event: AdminProfileUiEvent) {
+        when (event) {
+            AdminProfileUiEvent.Logout -> logout()
+            else -> Unit
+        }
+    }
+
     private fun loadUsuario() {
         viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+
             val usuario = usuarioRepository.getUsuarioLogueado()
-            usuario?.let {
-                _state.update { state ->
-                    state.copy(
-                        nombre = it.nombre,
-                        email = it.email,
-                        rol = it.rol
-                    )
-                }
+
+            _state.update { state ->
+                state.copy(
+                    nombre = usuario?.nombre ?: "",
+                    email = usuario?.email ?: "",
+                    rol = usuario?.rol ?: "",
+                    isLoading = false
+                )
             }
         }
     }
 
-    fun logout() {
+    private fun logout() {
         viewModelScope.launch {
             usuarioRepository.logout()
         }
     }
 }
-

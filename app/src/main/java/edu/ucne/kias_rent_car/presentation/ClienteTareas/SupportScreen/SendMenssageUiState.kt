@@ -4,6 +4,5 @@ data class SendMessageUiState(
     val asunto: String = "",
     val mensaje: String = "",
     val isLoading: Boolean = false,
-    val messageSent: Boolean = false,
-    val error: String? = null
+    val messageSent: Boolean = false
 )

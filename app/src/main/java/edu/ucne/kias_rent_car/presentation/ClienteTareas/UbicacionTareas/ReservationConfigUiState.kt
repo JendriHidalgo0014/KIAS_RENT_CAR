@@ -19,13 +19,7 @@ data class ReservationConfigUiState(
     val impuestos: Double = 0.0,
     val total: Double = 0.0,
     val isLoading: Boolean = false,
-    val error: String? = null
-) {
-    val isFormValid: Boolean
-        get() = lugarRecogida != null &&
-                lugarDevolucion != null &&
-                fechaRecogida != null &&
-                horaRecogida != null &&
-                fechaDevolucion != null &&
-                horaDevolucion != null
-}
+    val error: String? = null,
+    val configSaved: Boolean = false,
+    val isFormValid: Boolean = false
+)

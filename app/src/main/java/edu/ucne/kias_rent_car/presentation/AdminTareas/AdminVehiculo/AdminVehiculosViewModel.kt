@@ -25,23 +25,26 @@ class AdminVehiculosViewModel @Inject constructor(
     init {
         loadVehiculos()
     }
+
+    fun onEvent(event: AdminVehiculosUiEvent) {
+        when (event) {
+            is AdminVehiculosUiEvent.OnSearchChange -> onSearchChanged(event.query)
+            is AdminVehiculosUiEvent.DeleteVehiculo -> deleteVehiculo(event.id)
+            else -> Unit
+        }
+    }
+
     private fun loadVehiculos() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-
             getAllVehiclesUseCase().collect { vehiculos ->
-                _state.update {
-                    it.copy(
-                        vehiculos = vehiculos,
-                        isLoading = false
-                    )
-                }
+                _state.update { it.copy(vehiculos = vehiculos, isLoading = false) }
             }
         }
     }
-    fun onSearchChanged(query: String) {
-        _state.update { it.copy(searchQuery = query) }
 
+    private fun onSearchChanged(query: String) {
+        _state.update { it.copy(searchQuery = query) }
         viewModelScope.launch {
             if (query.isBlank()) {
                 loadVehiculos()
@@ -52,7 +55,8 @@ class AdminVehiculosViewModel @Inject constructor(
             }
         }
     }
-    fun deleteVehiculo(id: String) {
+
+    private fun deleteVehiculo(id: String) {
         viewModelScope.launch {
             deleteVehicleUseCase(id)
             loadVehiculos()

@@ -17,11 +17,17 @@ class ReservationConfirmationViewModel @Inject constructor(
     private val getVehicleDetailUseCase: GetVehicleDetailUseCase,
     private val getReservationConfigUseCase: GetReservationConfigUseCase
 ) : ViewModel() {
-
     private val _state = MutableStateFlow(ReservationConfirmationUiState())
     val state: StateFlow<ReservationConfirmationUiState> = _state.asStateFlow()
 
-    fun loadConfirmationData(vehicleId: String) {
+    fun onEvent(event: ReservationConfirmationUiEvent) {
+        when (event) {
+            is ReservationConfirmationUiEvent.LoadData -> loadConfirmationData(event.vehicleId)
+            else -> Unit
+        }
+    }
+
+    private fun loadConfirmationData(vehicleId: String) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
 

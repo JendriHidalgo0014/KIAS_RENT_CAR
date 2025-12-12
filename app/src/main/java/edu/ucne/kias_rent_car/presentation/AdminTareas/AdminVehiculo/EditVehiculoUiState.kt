@@ -13,11 +13,6 @@ data class EditVehiculoUiState(
     val isLoading: Boolean = false,
     val saveSuccess: Boolean = false,
     val deleteSuccess: Boolean = false,
-    val error: String? = null
-) {
-    val isFormValid: Boolean
-        get() = modelo.isNotBlank() &&
-                descripcion.isNotBlank() &&
-                precioPorDia.isNotBlank() &&
-                (precioPorDia.toDoubleOrNull() ?: 0.0) > 0
-}
+    val error: String? = null,
+    val isFormValid: Boolean = false
+)
