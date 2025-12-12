@@ -76,7 +76,7 @@ fun RegistroBody(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 },
@@ -105,7 +105,7 @@ fun RegistroBody(
                 text = "Crear Cuenta",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             )
 
@@ -254,8 +254,8 @@ fun RegistroBody(
 
 @Composable
 private fun textFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedTextColor = Color.White,
-    unfocusedTextColor = Color.White,
+    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+    unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
     focusedBorderColor = onErrorDark,
     unfocusedBorderColor = Color.Gray,
     cursorColor = onErrorDark
@@ -264,10 +264,12 @@ private fun textFieldColors() = OutlinedTextFieldDefaults.colors(
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun RegistroBodyPreview() {
-    val state = RegistroUiState(
-        nombre = "Juan Pérez",
-        email = "juan@email.com",
-        telefono = "8091234567"
-    )
-    RegistroBody(state, {})
+    MaterialTheme {
+        val state = RegistroUiState(
+            nombre = "Juan Pérez",
+            email = "juan@email.com",
+            telefono = "8091234567"
+        )
+        RegistroBody(state, {})
+    }
 }
