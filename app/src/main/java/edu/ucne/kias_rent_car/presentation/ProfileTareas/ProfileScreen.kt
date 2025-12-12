@@ -63,7 +63,7 @@ fun ProfileBody(
                 title = {
                     Text(
                         text = "KIA'S RENT CAR",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -152,7 +152,7 @@ private fun ProfileInfoRow(label: String, value: String) {
         Text(
             text = value,
             fontSize = 14.sp,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Medium
         )
     }
@@ -161,10 +161,12 @@ private fun ProfileInfoRow(label: String, value: String) {
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun ProfileBodyPreview() {
-    val state = ProfileUiState(
-        nombre = "Juan Pérez",
-        email = "juan@email.com",
-        telefono = "809-123-4567"
-    )
-    ProfileBody(state) {}
+    MaterialTheme {
+        val state = ProfileUiState(
+            nombre = "Juan Pérez",
+            email = "juan@email.com",
+            telefono = "809-123-4567"
+        )
+        ProfileBody(state) {}
+    }
 }
