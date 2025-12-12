@@ -72,7 +72,7 @@ class PaymentViewModelTest {
         coEvery { getReservationConfigUseCase() } returns null
         viewModel = PaymentViewModel(createReservacionUseCase, getReservationConfigUseCase)
 
-        viewModel.onEvent(PaymentEvent.MetodoPagoChanged(MetodoPago.BILLETERA))
+        viewModel.onEvent(PaymentUiEvent.MetodoPagoChanged(MetodoPago.BILLETERA))
 
         assertEquals(MetodoPago.BILLETERA, viewModel.state.value.metodoPago)
     }
@@ -82,7 +82,7 @@ class PaymentViewModelTest {
         coEvery { getReservationConfigUseCase() } returns null
         viewModel = PaymentViewModel(createReservacionUseCase, getReservationConfigUseCase)
 
-        viewModel.onEvent(PaymentEvent.NumeroTarjetaChanged("12345678901234567890"))
+        viewModel.onEvent(PaymentUiEvent.NumeroTarjetaChanged("12345678901234567890"))
 
         assertEquals("1234567890123456", viewModel.state.value.numeroTarjeta)
     }
@@ -92,7 +92,7 @@ class PaymentViewModelTest {
         coEvery { getReservationConfigUseCase() } returns null
         viewModel = PaymentViewModel(createReservacionUseCase, getReservationConfigUseCase)
 
-        viewModel.onEvent(PaymentEvent.CvvChanged("12345"))
+        viewModel.onEvent(PaymentUiEvent.CvvChanged("12345"))
 
         assertEquals("1234", viewModel.state.value.cvv)
     }
