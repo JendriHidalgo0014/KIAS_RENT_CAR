@@ -21,6 +21,14 @@ class AdminMensajesViewModel @Inject constructor(
     init {
         loadMensajes()
     }
+
+    fun onEvent(event: AdminMensajesUiEvent) {
+        when (event) {
+            AdminMensajesUiEvent.Refresh -> loadMensajes()
+            else -> Unit
+        }
+    }
+
     private fun loadMensajes() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
