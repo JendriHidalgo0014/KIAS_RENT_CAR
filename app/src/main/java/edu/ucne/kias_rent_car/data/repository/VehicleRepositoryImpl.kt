@@ -18,7 +18,7 @@ class VehicleRepositoryImpl @Inject constructor(
     private val localDataSource: VehicleDao,
     private val remoteDataSource: VehiculoRemoteDataSource
 ) : VehicleRepository {
-
+    private val errorInvalidId = "ID inválido"
     override fun observeAvailableVehicles(): Flow<List<Vehicle>> {
         return localDataSource.observeAllVehicles().map { it.toDomainList() }
     }
@@ -54,7 +54,7 @@ class VehicleRepositoryImpl @Inject constructor(
                 is Resource.Loading -> Resource.Loading()
             }
         }
-        return Resource.Error("ID inválido")
+        return Resource.Error(errorInvalidId)
     }
 
     override suspend fun refreshVehicles(): Resource<Unit> {
@@ -100,12 +100,7 @@ class VehicleRepositoryImpl @Inject constructor(
         precioPorDia: Double,
         imagenUrl: String
     ): Resource<Unit> {
-        val vehicle = localDataSource.getById(id)
-        val remoteId = vehicle?.remoteId ?: id.toIntOrNull()
-
-        if (remoteId == null) {
-            return Resource.Error("ID inválido")
-        }
+        val remoteId = getRemoteIdOrNull(id) ?: return Resource.Error(errorInvalidId)
 
         return when (val result = remoteDataSource.updateVehiculo(
             remoteId, modelo, descripcion, categoria, asientos, transmision, precioPorDia, imagenUrl
@@ -120,12 +115,7 @@ class VehicleRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteVehicle(id: String): Resource<Unit> {
-        val vehicle = localDataSource.getById(id)
-        val remoteId = vehicle?.remoteId ?: id.toIntOrNull()
-
-        if (remoteId == null) {
-            return Resource.Error("ID inválido")
-        }
+        val remoteId = getRemoteIdOrNull(id) ?: return Resource.Error(errorInvalidId)
 
         return when (val result = remoteDataSource.deleteVehiculo(remoteId)) {
             is Resource.Success -> {
@@ -135,5 +125,9 @@ class VehicleRepositoryImpl @Inject constructor(
             is Resource.Error -> Resource.Error(result.message)
             is Resource.Loading -> Resource.Loading()
         }
+    }
+    private suspend fun getRemoteIdOrNull(id: String): Int? {
+        val vehicle = localDataSource.getById(id)
+        return vehicle?.remoteId ?: id.toIntOrNull()
     }
 }

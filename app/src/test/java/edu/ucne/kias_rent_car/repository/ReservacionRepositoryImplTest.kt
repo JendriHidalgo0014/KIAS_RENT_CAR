@@ -1,4 +1,4 @@
-package edu.ucne.kias_rent_car.data.repository
+package edu.ucne.kias_rent_car.repository
 
 import android.content.Context
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
@@ -10,6 +10,7 @@ import edu.ucne.kias_rent_car.data.local.dao.VehicleDao
 import edu.ucne.kias_rent_car.data.local.entity.ReservacionEntity
 import edu.ucne.kias_rent_car.data.remote.Resource
 import edu.ucne.kias_rent_car.data.remote.datasource.ReservacionRemoteDataSource
+import edu.ucne.kias_rent_car.data.repository.ReservacionRepositoryImpl
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest

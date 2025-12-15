@@ -1,7 +1,6 @@
 package edu.ucne.kias_rent_car.data.remote.datasource
 
 import edu.ucne.kias_rent_car.data.remote.ApiService
-
 import edu.ucne.kias_rent_car.data.remote.Resource
 import edu.ucne.kias_rent_car.data.remote.dto.LoginRequest
 import edu.ucne.kias_rent_car.data.remote.dto.RegistroRequest
@@ -11,17 +10,23 @@ import javax.inject.Inject
 class UsuarioRemoteDataSource @Inject constructor(
     private val api: ApiService
 ) {
+    private val errorRed = "Error de red"
+    private val errorCredencialesInvalidas = "Credenciales inválidas"
+    private val errorRegistroUsuario = "Error al registrar usuario"
+    private val errorUsuarioNoEncontrado = "Usuario no encontrado"
+    private val errorRespuestaVacia = "Respuesta vacía del servidor"
+
     suspend fun login(email: String, password: String): Resource<UsuarioDto> {
         return try {
             val response = api.login(LoginRequest(email, password))
             if (response.isSuccessful) {
                 response.body()?.let { Resource.Success(it) }
-                    ?: Resource.Error("Credenciales inválidas")
+                    ?: Resource.Error(errorCredencialesInvalidas)
             } else {
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 
@@ -42,12 +47,12 @@ class UsuarioRemoteDataSource @Inject constructor(
             val response = api.registro(request)
             if (response.isSuccessful) {
                 response.body()?.let { Resource.Success(it) }
-                    ?: Resource.Error("Error al registrar usuario")
+                    ?: Resource.Error(errorRegistroUsuario)
             } else {
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 
@@ -56,12 +61,12 @@ class UsuarioRemoteDataSource @Inject constructor(
             val response = api.getUsuarioById(id)
             if (response.isSuccessful) {
                 response.body()?.let { Resource.Success(it) }
-                    ?: Resource.Error("Usuario no encontrado")
+                    ?: Resource.Error(errorUsuarioNoEncontrado)
             } else {
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 
@@ -70,12 +75,12 @@ class UsuarioRemoteDataSource @Inject constructor(
             val response = api.getUsuarios()
             if (response.isSuccessful) {
                 response.body()?.let { Resource.Success(it) }
-                    ?: Resource.Error("Respuesta vacía del servidor")
+                    ?: Resource.Error(errorRespuestaVacia)
             } else {
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 
@@ -88,7 +93,7 @@ class UsuarioRemoteDataSource @Inject constructor(
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 }
