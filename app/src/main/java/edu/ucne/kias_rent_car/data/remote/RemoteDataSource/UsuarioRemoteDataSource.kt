@@ -1,31 +1,36 @@
-package edu.ucne.kias_rent_car.data.remote
+package edu.ucne.kias_rent_car.data.remote.datasource
 
-import edu.ucne.kias_rent_car.data.remote.Dto.UsuarioDtos.LoginRequest
-import edu.ucne.kias_rent_car.data.remote.Dto.UsuarioDtos.RegistroRequest
-import edu.ucne.kias_rent_car.data.remote.Dto.UsuarioDtos.UsuarioDto
+import edu.ucne.kias_rent_car.data.remote.ApiService
+
+import edu.ucne.kias_rent_car.data.remote.Resource
+import edu.ucne.kias_rent_car.data.remote.dto.LoginRequest
+import edu.ucne.kias_rent_car.data.remote.dto.RegistroRequest
+import edu.ucne.kias_rent_car.data.remote.dto.UsuarioDto
 import javax.inject.Inject
 
 class UsuarioRemoteDataSource @Inject constructor(
-    private val apiService: ApiService
+    private val api: ApiService
 ) {
-    suspend fun login(email: String, password: String): UsuarioDto? {
+    suspend fun login(email: String, password: String): Resource<UsuarioDto> {
         return try {
-            val response = apiService.login(LoginRequest(email, password))
+            val response = api.login(LoginRequest(email, password))
             if (response.isSuccessful) {
-                response.body()
+                response.body()?.let { Resource.Success(it) }
+                    ?: Resource.Error("Credenciales inválidas")
             } else {
-                null
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            null
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
+
     suspend fun registro(
         nombre: String,
         email: String,
         password: String,
         telefono: String?
-    ): UsuarioDto? {
+    ): Resource<UsuarioDto> {
         return try {
             val request = RegistroRequest(
                 nombre = nombre,
@@ -34,44 +39,56 @@ class UsuarioRemoteDataSource @Inject constructor(
                 telefono = telefono,
                 rol = "Cliente"
             )
-            val response = apiService.registro(request)
+            val response = api.registro(request)
             if (response.isSuccessful) {
-                response.body()
+                response.body()?.let { Resource.Success(it) }
+                    ?: Resource.Error("Error al registrar usuario")
             } else {
-                null
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            null
-        }
-    }
-    suspend fun getUsuarioById(id: Int): UsuarioDto? {
-        return try {
-            val response = apiService.getUsuarioById(id)
-            if (response.isSuccessful) {
-                response.body()
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            null
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
 
-    suspend fun getUsuarios(): List<UsuarioDto>? {
+    suspend fun getUsuarioById(id: Int): Resource<UsuarioDto> {
         return try {
-            val response = apiService.getUsuarios()
-            if (response.isSuccessful) response.body() else null
+            val response = api.getUsuarioById(id)
+            if (response.isSuccessful) {
+                response.body()?.let { Resource.Success(it) }
+                    ?: Resource.Error("Usuario no encontrado")
+            } else {
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
+            }
         } catch (e: Exception) {
-            null
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
 
-    suspend fun deleteUsuario(id: Int): Boolean {
+    suspend fun getUsuarios(): Resource<List<UsuarioDto>> {
         return try {
-            val response = apiService.deleteUsuario(id)
-            response.isSuccessful
+            val response = api.getUsuarios()
+            if (response.isSuccessful) {
+                response.body()?.let { Resource.Success(it) }
+                    ?: Resource.Error("Respuesta vacía del servidor")
+            } else {
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
+            }
         } catch (e: Exception) {
-            false
+            Resource.Error(e.localizedMessage ?: "Error de red")
+        }
+    }
+
+    suspend fun deleteUsuario(id: Int): Resource<Unit> {
+        return try {
+            val response = api.deleteUsuario(id)
+            if (response.isSuccessful) {
+                Resource.Success(Unit)
+            } else {
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
 }

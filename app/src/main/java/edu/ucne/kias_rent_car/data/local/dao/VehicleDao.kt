@@ -1,9 +1,8 @@
 package edu.ucne.kias_rent_car.data.local.dao
 
 import androidx.room.*
-import edu.ucne.kias_rent_car.data.local.entity.VehicleEntity
+import edu.ucne.kias_rent_car.data.local.entities.VehicleEntity
 import kotlinx.coroutines.flow.Flow
-
 @Dao
 interface VehicleDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -25,7 +24,10 @@ interface VehicleDao {
     fun searchVehicles(query: String): Flow<List<VehicleEntity>>
 
     @Query("SELECT * FROM vehicles WHERE id = :id")
-    suspend fun getVehicleById(id: String): VehicleEntity?
+    suspend fun getById(id: String): VehicleEntity?
+
+    @Query("SELECT * FROM vehicles WHERE remoteId = :remoteId")
+    suspend fun getByRemoteId(remoteId: Int): VehicleEntity?
 
     @Query("DELETE FROM vehicles WHERE id = :id")
     suspend fun deleteById(id: String)
@@ -50,4 +52,7 @@ interface VehicleDao {
 
     @Query("UPDATE vehicles SET isPendingUpdate = 0 WHERE id = :id")
     suspend fun markAsUpdated(id: String)
+
+    @Query("UPDATE vehicles SET isPendingDelete = 0 WHERE id = :id")
+    suspend fun markAsDeleted(id: String)
 }

@@ -1,39 +1,56 @@
 package edu.ucne.kias_rent_car.data.remote.datasource
 
 import edu.ucne.kias_rent_car.data.remote.ApiService
-import edu.ucne.kias_rent_car.data.remote.Dto.VehicleDtos.VehiculoDto
-import edu.ucne.kias_rent_car.data.remote.Dto.VehicleDtos.VehiculoRequest
+import edu.ucne.kias_rent_car.data.remote.Resource
+import edu.ucne.kias_rent_car.data.remote.dto.VehiculoDto
+import edu.ucne.kias_rent_car.data.remote.dto.VehiculoRequest
 import javax.inject.Inject
 
 class VehiculoRemoteDataSource @Inject constructor(
-    private val apiService: ApiService
+    private val api: ApiService
 ) {
-    suspend fun getVehiculosDisponibles(): List<VehiculoDto>? {
+    suspend fun getVehiculosDisponibles(): Resource<List<VehiculoDto>> {
         return try {
-            val response = apiService.getVehiculosDisponibles()
-            if (response.isSuccessful) response.body() else null
+            val response = api.getVehiculosDisponibles()
+            if (response.isSuccessful) {
+                response.body()?.let { Resource.Success(it) }
+                    ?: Resource.Error("Respuesta vacía del servidor")
+            } else {
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
+            }
         } catch (e: Exception) {
-            null
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
 
-    suspend fun getAllVehiculos(): List<VehiculoDto>? {
+    suspend fun getAllVehiculos(): Resource<List<VehiculoDto>> {
         return try {
-            val response = apiService.getAllVehiculos()
-            if (response.isSuccessful) response.body() else null
+            val response = api.getAllVehiculos()
+            if (response.isSuccessful) {
+                response.body()?.let { Resource.Success(it) }
+                    ?: Resource.Error("Respuesta vacía del servidor")
+            } else {
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
+            }
         } catch (e: Exception) {
-            null
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
 
-    suspend fun getVehiculoById(id: Int): VehiculoDto? {
+    suspend fun getVehiculoById(id: Int): Resource<VehiculoDto> {
         return try {
-            val response = apiService.getVehiculoById(id)
-            if (response.isSuccessful) response.body() else null
+            val response = api.getVehiculoById(id)
+            if (response.isSuccessful) {
+                response.body()?.let { Resource.Success(it) }
+                    ?: Resource.Error("Vehículo no encontrado")
+            } else {
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
+            }
         } catch (e: Exception) {
-            null
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
+
     suspend fun createVehiculo(
         modelo: String,
         descripcion: String,
@@ -42,7 +59,7 @@ class VehiculoRemoteDataSource @Inject constructor(
         transmision: String,
         precioPorDia: Double,
         imagenUrl: String
-    ): VehiculoDto? {
+    ): Resource<VehiculoDto> {
         return try {
             val request = VehiculoRequest(
                 modelo = modelo,
@@ -53,10 +70,15 @@ class VehiculoRemoteDataSource @Inject constructor(
                 precioPorDia = precioPorDia,
                 imagenUrl = imagenUrl
             )
-            val response = apiService.createVehiculo(request)
-            if (response.isSuccessful) response.body() else null
+            val response = api.createVehiculo(request)
+            if (response.isSuccessful) {
+                response.body()?.let { Resource.Success(it) }
+                    ?: Resource.Error("Respuesta vacía del servidor")
+            } else {
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
+            }
         } catch (e: Exception) {
-            null
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
 
@@ -69,7 +91,7 @@ class VehiculoRemoteDataSource @Inject constructor(
         transmision: String,
         precioPorDia: Double,
         imagenUrl: String
-    ): Boolean {
+    ): Resource<Unit> {
         return try {
             val request = VehiculoRequest(
                 modelo = modelo,
@@ -80,19 +102,27 @@ class VehiculoRemoteDataSource @Inject constructor(
                 precioPorDia = precioPorDia,
                 imagenUrl = imagenUrl
             )
-            val response = apiService.updateVehiculo(id, request)
-            response.isSuccessful
+            val response = api.updateVehiculo(id, request)
+            if (response.isSuccessful) {
+                Resource.Success(Unit)
+            } else {
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
+            }
         } catch (e: Exception) {
-            false
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
 
-    suspend fun deleteVehiculo(id: Int): Boolean {
+    suspend fun deleteVehiculo(id: Int): Resource<Unit> {
         return try {
-            val response = apiService.deleteVehiculo(id)
-            response.isSuccessful
+            val response = api.deleteVehiculo(id)
+            if (response.isSuccessful) {
+                Resource.Success(Unit)
+            } else {
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
+            }
         } catch (e: Exception) {
-            false
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
 }

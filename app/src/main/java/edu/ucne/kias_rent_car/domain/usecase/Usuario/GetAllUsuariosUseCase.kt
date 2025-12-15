@@ -1,5 +1,6 @@
 package edu.ucne.kias_rent_car.domain.usecase.Usuario
 
+import edu.ucne.kias_rent_car.data.remote.Resource
 import edu.ucne.kias_rent_car.domain.model.Usuario
 import edu.ucne.kias_rent_car.domain.repository.UsuarioRepository
 import javax.inject.Inject
@@ -7,7 +8,5 @@ import javax.inject.Inject
 class GetAllUsuariosUseCase @Inject constructor(
     private val repository: UsuarioRepository
 ) {
-    suspend operator fun invoke(): List<Usuario> {
-        return repository.getAllUsuarios()
-    }
+    suspend operator fun invoke(): Resource<List<Usuario>> = repository.getAllUsuarios()
 }

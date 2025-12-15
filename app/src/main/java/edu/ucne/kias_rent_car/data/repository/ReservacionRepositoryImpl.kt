@@ -1,141 +1,203 @@
 package edu.ucne.kias_rent_car.data.repository
 
-import android.content.Context
-import dagger.hilt.android.qualifiers.ApplicationContext
 import edu.ucne.kias_rent_car.data.local.dao.ReservacionDao
 import edu.ucne.kias_rent_car.data.local.dao.ReservationConfigDao
+import edu.ucne.kias_rent_car.data.local.dao.UbicacionDao
 import edu.ucne.kias_rent_car.data.local.dao.UsuarioDao
 import edu.ucne.kias_rent_car.data.local.dao.VehicleDao
-import edu.ucne.kias_rent_car.data.local.dao.UbicacionDao
-import edu.ucne.kias_rent_car.data.local.entity.ReservacionEntity
+import edu.ucne.kias_rent_car.data.local.entities.ReservacionEntity
 import edu.ucne.kias_rent_car.data.mappers.ReservacionMapper.toDomain
 import edu.ucne.kias_rent_car.data.mappers.ReservacionMapper.toDomainList
 import edu.ucne.kias_rent_car.data.mappers.ReservacionMapper.toEntityList
 import edu.ucne.kias_rent_car.data.mappers.ReservationConfigMapper.toDomain
 import edu.ucne.kias_rent_car.data.mappers.ReservationConfigMapper.toEntity
-import edu.ucne.kias_rent_car.data.remote.Dto.ReservationDtos.ReservacionRequest
 import edu.ucne.kias_rent_car.data.remote.Resource
 import edu.ucne.kias_rent_car.data.remote.datasource.ReservacionRemoteDataSource
-import edu.ucne.kias_rent_car.data.sync.SyncTrigger
+import edu.ucne.kias_rent_car.data.remote.dto.ReservacionRequest
 import edu.ucne.kias_rent_car.domain.model.Reservacion
 import edu.ucne.kias_rent_car.domain.model.ReservationConfig
 import edu.ucne.kias_rent_car.domain.repository.ReservacionRepository
+import java.time.LocalDate
+import java.util.UUID
 import javax.inject.Inject
 
 class ReservacionRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context,
+    private val localDataSource: ReservacionDao,
     private val remoteDataSource: ReservacionRemoteDataSource,
-    private val reservacionDao: ReservacionDao,
-    private val reservationConfigDao: ReservationConfigDao,
+    private val configDao: ReservationConfigDao,
     private val usuarioDao: UsuarioDao,
     private val vehicleDao: VehicleDao,
     private val ubicacionDao: UbicacionDao
 ) : ReservacionRepository {
-    override suspend fun getReservaciones(): List<Reservacion> {
-        try {
-            val remotas = remoteDataSource.getReservaciones()
-            if (remotas != null && remotas.isNotEmpty()) {
-                reservacionDao.insertReservaciones(remotas.toEntityList())
+
+    override suspend fun getReservaciones(): Resource<List<Reservacion>> {
+        return try {
+            when (val result = remoteDataSource.getReservaciones()) {
+                is Resource.Success -> {
+                    result.data?.toEntityList()?.let { localDataSource.insertReservaciones(it) }
+                    Resource.Success(localDataSource.getReservaciones().toDomainList())
+                }
+                is Resource.Error -> {
+                    val locales = localDataSource.getReservaciones()
+                    if (locales.isNotEmpty()) {
+                        Resource.Success(locales.toDomainList())
+                    } else {
+                        Resource.Error(result.message ?: "Error desconocido")
+                    }
+                }
+                is Resource.Loading -> Resource.Loading()
             }
-        } catch (_: Exception) { }
-        return reservacionDao.getReservaciones().toDomainList()
+        } catch (e: Exception) {
+            val locales = localDataSource.getReservaciones()
+            if (locales.isNotEmpty()) {
+                Resource.Success(locales.toDomainList())
+            } else {
+                Resource.Error(e.localizedMessage ?: "Error al obtener reservaciones")
+            }
+        }
     }
 
-    override suspend fun getReservacionesByUsuario(usuarioId: Int): List<Reservacion> {
-        try {
-            val remotas = remoteDataSource.getReservacionesByUsuario(usuarioId)
-            if (remotas != null && remotas.isNotEmpty()) {
-                reservacionDao.insertReservaciones(remotas.toEntityList())
+    override suspend fun getReservacionesByUsuario(usuarioId: Int): Resource<List<Reservacion>> {
+        return try {
+            when (val result = remoteDataSource.getReservacionesByUsuario(usuarioId)) {
+                is Resource.Success -> {
+                    result.data?.toEntityList()?.let { localDataSource.insertReservaciones(it) }
+                    Resource.Success(localDataSource.getReservacionesByUsuario(usuarioId).toDomainList())
+                }
+                is Resource.Error -> Resource.Success(localDataSource.getReservacionesByUsuario(usuarioId).toDomainList())
+                is Resource.Loading -> Resource.Loading()
             }
-        } catch (_: Exception) { }
-        return reservacionDao.getReservacionesByUsuario(usuarioId).toDomainList()
+        } catch (e: Exception) {
+            Resource.Success(localDataSource.getReservacionesByUsuario(usuarioId).toDomainList())
+        }
     }
 
-    override suspend fun getReservacionById(id: Int): Reservacion? {
-        try {
-            val remota = remoteDataSource.getReservacionById(id)
-            if (remota != null) {
-                return remota.toDomain()
+    override suspend fun getReservacionById(id: String): Resource<Reservacion> {
+        val local = localDataSource.getById(id)
+        if (local != null) {
+            return Resource.Success(local.toDomain())
+        }
+
+        val remoteId = id.toIntOrNull()
+        if (remoteId != null) {
+            val byRemote = localDataSource.getByRemoteId(remoteId)
+            if (byRemote != null) {
+                return Resource.Success(byRemote.toDomain())
             }
-        } catch (_: Exception) { }
-        return reservacionDao.getById(id)?.toDomain()
+
+            return when (val result = remoteDataSource.getReservacionById(remoteId)) {
+                is Resource.Success -> Resource.Success(result.data!!.toDomain())
+                is Resource.Error -> Resource.Error(result.message ?: "Error desconocido")
+                is Resource.Loading -> Resource.Loading()
+            }
+        }
+
+        return Resource.Error("Reservación no encontrada")
     }
 
-    override suspend fun createReservacion(config: ReservationConfig): Resource<Reservacion> {
+    override suspend fun createReservacionLocal(config: ReservationConfig): Resource<Reservacion> {
         val usuarioLogueado = usuarioDao.getLoggedInUsuario()
-        val usuarioId = usuarioLogueado?.usuarioId ?: 1
-        val vehiculo = vehicleDao.getVehicleById(config.vehicleId)
-        val ubicacionRecogida = ubicacionDao.getUbicacionByNombre(config.lugarRecogida)
-        val ubicacionDevolucion = ubicacionDao.getUbicacionByNombre(config.lugarDevolucion)
-        val tempId = -(System.currentTimeMillis() % 100000).toInt()
+        val usuarioId = usuarioLogueado?.remoteId ?: 1
+        val vehiculo = vehicleDao.getById(config.vehicleId)
+        val ubicacionRecogida = ubicacionDao.getByNombre(config.lugarRecogida)
+        val ubicacionDevolucion = ubicacionDao.getByNombre(config.lugarDevolucion)
         val codigoReserva = "KR-${System.currentTimeMillis().toString().takeLast(6)}"
 
-        vehiculo?.let {
-            vehicleDao.updateDisponibilidad(config.vehicleId, false)
-        }
-        val entityLocal = ReservacionEntity(
-            reservacionId = tempId,
+        vehiculo?.let { vehicleDao.updateDisponibilidad(config.vehicleId, false) }
+
+        val entity = ReservacionEntity(
+            id = UUID.randomUUID().toString(),
+            remoteId = null,
             usuarioId = usuarioId,
-            vehiculoId = config.vehicleId.toIntOrNull() ?: 0,
+            vehiculoId = vehiculo?.remoteId ?: config.vehicleId.toIntOrNull() ?: 0,
             fechaRecogida = config.fechaRecogida,
             horaRecogida = config.horaRecogida,
             fechaDevolucion = config.fechaDevolucion,
             horaDevolucion = config.horaDevolucion,
-            ubicacionRecogidaId = ubicacionRecogida?.ubicacionId ?: 1,
-            ubicacionDevolucionId = ubicacionDevolucion?.ubicacionId ?: 1,
+            ubicacionRecogidaId = ubicacionRecogida?.remoteId ?: config.ubicacionRecogidaId,
+            ubicacionDevolucionId = ubicacionDevolucion?.remoteId ?: config.ubicacionDevolucionId,
             estado = "Confirmada",
             subtotal = config.subtotal,
             impuestos = config.impuestos,
             total = config.total,
             codigoReserva = codigoReserva,
-            fechaCreacion = java.time.LocalDate.now().toString(),
+            fechaCreacion = LocalDate.now().toString(),
             isPendingCreate = true,
+            isPendingUpdate = false,
+            isPendingDelete = false,
             vehiculoModelo = vehiculo?.modelo ?: "",
             vehiculoImagenUrl = vehiculo?.imagenUrl ?: "",
             vehiculoPrecioPorDia = vehiculo?.precioPorDia ?: 0.0,
             ubicacionRecogidaNombre = config.lugarRecogida,
             ubicacionDevolucionNombre = config.lugarDevolucion
         )
-        reservacionDao.insertReservacion(entityLocal)
+        localDataSource.insertReservacion(entity)
+        return Resource.Success(entity.toDomain())
+    }
 
-        return try {
-            val request = ReservacionRequest(
-                reservaId = 0,
-                vehiculoId = config.vehicleId.toIntOrNull() ?: 0,
-                usuarioId = usuarioId.toString(),
-                fechaRecogida = config.fechaRecogida,
-                horaRecogida = config.horaRecogida,
-                fechaDevolucion = config.fechaDevolucion,
-                horaDevolucion = config.horaDevolucion,
-                lugarRecogida = config.lugarRecogida,
-                lugarDevolucion = config.lugarDevolucion,
-                estado = "Confirmada",
-                subtotal = config.subtotal,
-                impuestos = config.impuestos,
-                total = config.total,
-                codigoReserva = codigoReserva
-            )
-            val response = remoteDataSource.createReservacion(request)
-            if (response != null) {
-                reservacionDao.deleteById(tempId)
-                val entityReal = entityLocal.copy(
-                    reservacionId = response.reservacionId,
-                    isPendingCreate = false
+    override suspend fun createReservacion(config: ReservationConfig): Resource<Reservacion> {
+        val usuarioLogueado = usuarioDao.getLoggedInUsuario()
+        val usuarioId = usuarioLogueado?.remoteId ?: 1
+        val vehiculo = vehicleDao.getById(config.vehicleId)
+        val codigoReserva = "KR-${System.currentTimeMillis().toString().takeLast(6)}"
+
+        val request = ReservacionRequest(
+            reservaId = 0,
+            vehiculoId = vehiculo?.remoteId ?: config.vehicleId.toIntOrNull() ?: 0,
+            usuarioId = usuarioId.toString(),
+            fechaRecogida = config.fechaRecogida,
+            horaRecogida = config.horaRecogida,
+            fechaDevolucion = config.fechaDevolucion,
+            horaDevolucion = config.horaDevolucion,
+            lugarRecogida = config.lugarRecogida,
+            lugarDevolucion = config.lugarDevolucion,
+            estado = "Confirmada",
+            subtotal = config.subtotal,
+            impuestos = config.impuestos,
+            total = config.total,
+            codigoReserva = codigoReserva
+        )
+
+        return when (val result = remoteDataSource.createReservacion(request)) {
+            is Resource.Success -> {
+                val data = result.data!!
+                val entity = ReservacionEntity(
+                    id = UUID.randomUUID().toString(),
+                    remoteId = data.reservacionId,
+                    usuarioId = usuarioId,
+                    vehiculoId = vehiculo?.remoteId ?: 0,
+                    fechaRecogida = config.fechaRecogida,
+                    horaRecogida = config.horaRecogida,
+                    fechaDevolucion = config.fechaDevolucion,
+                    horaDevolucion = config.horaDevolucion,
+                    ubicacionRecogidaId = config.ubicacionRecogidaId,
+                    ubicacionDevolucionId = config.ubicacionDevolucionId,
+                    estado = "Confirmada",
+                    subtotal = config.subtotal,
+                    impuestos = config.impuestos,
+                    total = config.total,
+                    codigoReserva = data.codigoReserva ?: codigoReserva,
+                    fechaCreacion = LocalDate.now().toString(),
+                    isPendingCreate = false,
+                    isPendingUpdate = false,
+                    isPendingDelete = false,
+                    vehiculoModelo = vehiculo?.modelo ?: "",
+                    vehiculoImagenUrl = vehiculo?.imagenUrl ?: "",
+                    vehiculoPrecioPorDia = vehiculo?.precioPorDia ?: 0.0,
+                    ubicacionRecogidaNombre = config.lugarRecogida,
+                    ubicacionDevolucionNombre = config.lugarDevolucion
                 )
-                reservacionDao.insertReservacion(entityReal)
-                Resource.Success(response.toDomain())
-            } else {
-                SyncTrigger.triggerImmediateSync(context)
-                Resource.Success(entityLocal.toDomain())
+                localDataSource.insertReservacion(entity)
+                vehiculo?.let { vehicleDao.updateDisponibilidad(config.vehicleId, false) }
+                Resource.Success(entity.toDomain())
             }
-        } catch (_: Exception) {
-            SyncTrigger.triggerImmediateSync(context)
-            Resource.Success(entityLocal.toDomain())
+            is Resource.Error -> createReservacionLocal(config)
+            is Resource.Loading -> Resource.Loading()
         }
     }
 
-    override suspend fun updateReservacionData(
-        reservacionId: Int,
+    override suspend fun updateReservacion(
+        reservacionId: String,
         ubicacionRecogidaId: Int,
         ubicacionDevolucionId: Int,
         fechaRecogida: String,
@@ -143,99 +205,127 @@ class ReservacionRepositoryImpl @Inject constructor(
         fechaDevolucion: String,
         horaDevolucion: String
     ): Resource<Unit> {
-        reservacionDao.updateDatosLocal(
-            id = reservacionId,
-            ubicacionRecogidaId = ubicacionRecogidaId,
-            ubicacionDevolucionId = ubicacionDevolucionId,
-            fechaRecogida = fechaRecogida,
-            horaRecogida = horaRecogida,
-            fechaDevolucion = fechaDevolucion,
-            horaDevolucion = horaDevolucion
+        localDataSource.updateDatosLocal(
+            reservacionId, ubicacionRecogidaId, ubicacionDevolucionId,
+            fechaRecogida, horaRecogida, fechaDevolucion, horaDevolucion
         )
-        return try {
-            val success = remoteDataSource.updateReservacion(
-                reservacionId = reservacionId,
-                ubicacionRecogidaId = ubicacionRecogidaId,
-                ubicacionDevolucionId = ubicacionDevolucionId,
-                fechaRecogida = fechaRecogida,
-                horaRecogida = horaRecogida,
-                fechaDevolucion = fechaDevolucion,
-                horaDevolucion = horaDevolucion
-            )
 
-            if (success) {
-                reservacionDao.markAsUpdated(reservacionId)
-            } else {
-                SyncTrigger.triggerImmediateSync(context)
+        val reservacion = localDataSource.getById(reservacionId)
+        val remoteId = reservacion?.remoteId
+
+        return if (remoteId != null) {
+            when (remoteDataSource.updateReservacion(
+                remoteId, ubicacionRecogidaId, ubicacionDevolucionId,
+                fechaRecogida, horaRecogida, fechaDevolucion, horaDevolucion
+            )) {
+                is Resource.Success -> {
+                    localDataSource.markAsUpdated(reservacionId)
+                    Resource.Success(Unit)
+                }
+                else -> Resource.Success(Unit)
             }
-            Resource.Success(Unit)
-        } catch (_: Exception) {
-            SyncTrigger.triggerImmediateSync(context)
+        } else {
             Resource.Success(Unit)
         }
     }
 
-    override suspend fun updateReservacion(reservacion: Reservacion): Resource<Unit> {
-        return updateReservacionData(
-            reservacionId = reservacion.reservacionId,
-            ubicacionRecogidaId = reservacion.ubicacionRecogidaId,
-            ubicacionDevolucionId = reservacion.ubicacionDevolucionId,
-            fechaRecogida = reservacion.fechaRecogida,
-            horaRecogida = reservacion.horaRecogida,
-            fechaDevolucion = reservacion.fechaDevolucion,
-            horaDevolucion = reservacion.horaDevolucion
-        )
-    }
+    override suspend fun updateEstado(reservacionId: String, estado: String): Resource<Unit> {
+        val reservacion = localDataSource.getById(reservacionId)
+        localDataSource.updateEstadoLocal(reservacionId, estado)
 
-    override suspend fun updateEstado(reservacionId: Int, estado: String): Resource<Unit> {
-        val reservacion = reservacionDao.getById(reservacionId)
-
-        reservacionDao.updateEstadoLocal(reservacionId, estado)
         if (estado == "Cancelada" || estado == "Completada") {
             reservacion?.let {
-                vehicleDao.updateDisponibilidad(it.vehiculoId.toString(), true)
+                val vehiculo = vehicleDao.getByRemoteId(it.vehiculoId)
+                vehiculo?.let { v -> vehicleDao.updateDisponibilidad(v.id, true) }
             }
         }
 
-        return try {
-            val success = remoteDataSource.updateEstado(reservacionId, estado)
-            if (success) {
-                reservacionDao.markEstadoAsUpdated(reservacionId)
-            } else {
-                SyncTrigger.triggerImmediateSync(context)
+        val remoteId = reservacion?.remoteId
+        return if (remoteId != null) {
+            when (remoteDataSource.updateEstado(remoteId, estado)) {
+                is Resource.Success -> {
+                    localDataSource.markAsUpdated(reservacionId)
+                    Resource.Success(Unit)
+                }
+                else -> Resource.Success(Unit)
             }
-            Resource.Success(Unit)
-        } catch (_: Exception) {
-            SyncTrigger.triggerImmediateSync(context)
+        } else {
             Resource.Success(Unit)
         }
     }
 
-    override suspend fun cancelReservacion(reservacionId: Int): Resource<Unit> {
+    override suspend fun cancelReservacion(reservacionId: String): Resource<Unit> {
         return updateEstado(reservacionId, "Cancelada")
     }
 
-    override suspend fun saveReservationConfig(config: ReservationConfig) {
-        reservationConfigDao.saveConfig(config.toEntity())
+    override suspend fun saveReservationConfig(config: ReservationConfig): Resource<Unit> {
+        configDao.clearConfig()
+        configDao.saveConfig(config.toEntity())
+        return Resource.Success(Unit)
     }
 
-    override suspend fun getReservationConfig(): ReservationConfig? {
-        return reservationConfigDao.getConfig()?.toDomain()
+    override suspend fun getReservationConfig(): Resource<ReservationConfig?> {
+        val config = configDao.getConfig()?.toDomain()
+        return Resource.Success(config)
     }
 
-    override suspend fun refreshReservaciones() {
-        try {
-            val remotas = remoteDataSource.getReservaciones()
-            if (remotas != null) {
-                val pendingCreate = reservacionDao.getPendingCreate()
-                val pendingUpdate = reservacionDao.getPendingUpdate()
-                val pendingEstado = reservacionDao.getPendingEstadoUpdate()
+    override suspend fun refreshReservaciones(): Resource<Unit> {
+        return when (val result = remoteDataSource.getReservaciones()) {
+            is Resource.Success -> {
+                val hasPending = localDataSource.getPendingCreate().isNotEmpty() ||
+                        localDataSource.getPendingUpdate().isNotEmpty()
 
-                if (pendingCreate.isEmpty() && pendingUpdate.isEmpty() && pendingEstado.isEmpty()) {
-                    reservacionDao.deleteAll()
+                if (!hasPending) {
+                    localDataSource.deleteAll()
                 }
-                reservacionDao.insertReservaciones(remotas.toEntityList())
+                result.data?.toEntityList()?.let { localDataSource.insertReservaciones(it) }
+                Resource.Success(Unit)
             }
-        } catch (_: Exception) { }
+            is Resource.Error -> Resource.Error(result.message ?: "Error desconocido")
+            is Resource.Loading -> Resource.Loading()
+        }
+    }
+
+    override suspend fun postPendingReservaciones(): Resource<Unit> {
+        val pendingCreate = localDataSource.getPendingCreate()
+        for (reservacion in pendingCreate) {
+            val request = ReservacionRequest(
+                reservaId = 0,
+                vehiculoId = reservacion.vehiculoId,
+                usuarioId = reservacion.usuarioId.toString(),
+                fechaRecogida = reservacion.fechaRecogida,
+                horaRecogida = reservacion.horaRecogida,
+                fechaDevolucion = reservacion.fechaDevolucion,
+                horaDevolucion = reservacion.horaDevolucion,
+                lugarRecogida = reservacion.ubicacionRecogidaNombre,
+                lugarDevolucion = reservacion.ubicacionDevolucionNombre,
+                estado = reservacion.estado,
+                subtotal = reservacion.subtotal,
+                impuestos = reservacion.impuestos,
+                total = reservacion.total,
+                codigoReserva = reservacion.codigoReserva
+            )
+            when (val result = remoteDataSource.createReservacion(request)) {
+                is Resource.Success -> result.data?.reservacionId?.let {
+                    localDataSource.markAsCreated(reservacion.id, it)
+                }
+                else -> Unit
+            }
+        }
+
+        val pendingUpdate = localDataSource.getPendingUpdate()
+        for (reservacion in pendingUpdate) {
+            val remoteId = reservacion.remoteId ?: continue
+            when (remoteDataSource.updateReservacion(
+                remoteId, reservacion.ubicacionRecogidaId,
+                reservacion.ubicacionDevolucionId, reservacion.fechaRecogida,
+                reservacion.horaRecogida, reservacion.fechaDevolucion, reservacion.horaDevolucion
+            )) {
+                is Resource.Success -> localDataSource.markAsUpdated(reservacion.id)
+                else -> Unit
+            }
+        }
+
+        return Resource.Success(Unit)
     }
 }

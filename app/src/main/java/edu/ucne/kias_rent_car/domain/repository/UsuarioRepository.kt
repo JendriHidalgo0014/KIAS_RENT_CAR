@@ -12,10 +12,10 @@ interface UsuarioRepository {
         password: String,
         telefono: String?
     ): Resource<Usuario>
-    suspend fun logout()
-    suspend fun getUsuarioLogueado(): Usuario?
+    suspend fun logout(): Resource<Unit>
+    suspend fun getUsuarioLogueado(): Resource<Usuario?>
     fun observeUsuarioLogueado(): Flow<Usuario?>
-    suspend fun getUsuarioById(id: Int): Resource<Usuario>
-    suspend fun getAllUsuarios(): List<Usuario>
-    suspend fun deleteUsuario(id: Int): Boolean
+    suspend fun getUsuarioById(id: String): Resource<Usuario>
+    suspend fun getAllUsuarios(): Resource<List<Usuario>>
+    suspend fun deleteUsuario(id: String): Resource<Unit>
 }

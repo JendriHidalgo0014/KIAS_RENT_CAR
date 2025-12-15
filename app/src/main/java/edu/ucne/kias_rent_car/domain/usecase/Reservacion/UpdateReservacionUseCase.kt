@@ -8,22 +8,15 @@ class UpdateReservacionUseCase @Inject constructor(
     private val repository: ReservacionRepository
 ) {
     suspend operator fun invoke(
-        reservacionId: Int,
+        reservacionId: String,
         ubicacionRecogidaId: Int,
         ubicacionDevolucionId: Int,
         fechaRecogida: String,
         horaRecogida: String,
         fechaDevolucion: String,
         horaDevolucion: String
-    ): Resource<Unit> {
-        return repository.updateReservacionData(
-            reservacionId = reservacionId,
-            ubicacionRecogidaId = ubicacionRecogidaId,
-            ubicacionDevolucionId = ubicacionDevolucionId,
-            fechaRecogida = fechaRecogida,
-            horaRecogida = horaRecogida,
-            fechaDevolucion = fechaDevolucion,
-            horaDevolucion = horaDevolucion
-        )
-    }
+    ): Resource<Unit> = repository.updateReservacion(
+        reservacionId, ubicacionRecogidaId, ubicacionDevolucionId,
+        fechaRecogida, horaRecogida, fechaDevolucion, horaDevolucion
+    )
 }

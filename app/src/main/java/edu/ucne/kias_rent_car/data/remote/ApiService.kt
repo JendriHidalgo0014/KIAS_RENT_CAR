@@ -1,20 +1,19 @@
 package edu.ucne.kias_rent_car.data.remote
 
-
-import edu.ucne.kias_rent_car.data.remote.Dto.ReservationDtos.EstadoRequest
-import edu.ucne.kias_rent_car.data.remote.Dto.ReservationDtos.ReservacionDto
-import edu.ucne.kias_rent_car.data.remote.Dto.ReservationDtos.ReservacionRequest
-import edu.ucne.kias_rent_car.data.remote.Dto.ReservationDtos.UpdateDatosRequest
-import edu.ucne.kias_rent_car.data.remote.Dto.UbicacionDtos.UbicacionDto
 import edu.ucne.kias_rent_car.data.remote.Dto.UbicacionDtos.UbicacionRequest
-import edu.ucne.kias_rent_car.data.remote.Dto.UsuarioDtos.LoginRequest
-import edu.ucne.kias_rent_car.data.remote.Dto.UsuarioDtos.MensajeDto
-import edu.ucne.kias_rent_car.data.remote.Dto.UsuarioDtos.MensajeRequest
-import edu.ucne.kias_rent_car.data.remote.Dto.UsuarioDtos.RegistroRequest
-import edu.ucne.kias_rent_car.data.remote.Dto.UsuarioDtos.RespuestaRequest
-import edu.ucne.kias_rent_car.data.remote.Dto.UsuarioDtos.UsuarioDto
-import edu.ucne.kias_rent_car.data.remote.Dto.VehicleDtos.VehiculoDto
-import edu.ucne.kias_rent_car.data.remote.Dto.VehicleDtos.VehiculoRequest
+import edu.ucne.kias_rent_car.data.remote.dto.EstadoRequest
+import edu.ucne.kias_rent_car.data.remote.dto.LoginRequest
+import edu.ucne.kias_rent_car.data.remote.dto.MensajeDto
+import edu.ucne.kias_rent_car.data.remote.dto.MensajeRequest
+import edu.ucne.kias_rent_car.data.remote.dto.RegistroRequest
+import edu.ucne.kias_rent_car.data.remote.dto.ReservacionDto
+import edu.ucne.kias_rent_car.data.remote.dto.ReservacionRequest
+import edu.ucne.kias_rent_car.data.remote.dto.RespuestaRequest
+import edu.ucne.kias_rent_car.data.remote.dto.UbicacionDto
+import edu.ucne.kias_rent_car.data.remote.dto.UpdateDatosRequest
+import edu.ucne.kias_rent_car.data.remote.dto.UsuarioDto
+import edu.ucne.kias_rent_car.data.remote.dto.VehiculoDto
+import edu.ucne.kias_rent_car.data.remote.dto.VehiculoRequest
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.*
@@ -23,11 +22,13 @@ interface ApiService {
     // ==================== USUARIOS ====================
     @POST("usuarios/login")
     suspend fun login(@Body request: LoginRequest): Response<UsuarioDto>
+
     @POST("usuarios/registro")
     suspend fun registro(@Body request: RegistroRequest): Response<UsuarioDto>
 
     @GET("usuarios")
     suspend fun getUsuarios(): Response<List<UsuarioDto>>
+
     @GET("usuarios/{id}")
     suspend fun getUsuarioById(@Path("id") id: Int): Response<UsuarioDto>
 
@@ -46,6 +47,7 @@ interface ApiService {
 
     @GET("vehiculos/all")
     suspend fun getAllVehiculos(): Response<List<VehiculoDto>>
+
     @GET("vehiculos/{id}")
     suspend fun getVehiculoById(@Path("id") id: Int): Response<VehiculoDto>
 
@@ -54,10 +56,13 @@ interface ApiService {
 
     @GET("vehiculos/buscar")
     suspend fun searchVehiculos(@Query("query") query: String): Response<List<VehiculoDto>>
+
     @POST("vehiculos")
     suspend fun createVehiculo(@Body request: VehiculoRequest): Response<VehiculoDto>
+
     @PUT("vehiculos/{id}")
     suspend fun updateVehiculo(@Path("id") id: Int, @Body request: VehiculoRequest): Response<Unit>
+
     @DELETE("vehiculos/{id}")
     suspend fun deleteVehiculo(@Path("id") id: Int): Response<Unit>
 
@@ -68,6 +73,7 @@ interface ApiService {
     // ==================== UBICACIONES ====================
     @GET("ubicaciones")
     suspend fun getUbicaciones(): Response<List<UbicacionDto>>
+
     @GET("ubicaciones/{id}")
     suspend fun getUbicacionById(@Path("id") id: Int): Response<UbicacionDto>
 
@@ -83,26 +89,25 @@ interface ApiService {
     // ==================== RESERVACIONES ====================
     @GET("reservaciones")
     suspend fun getReservaciones(): Response<List<ReservacionDto>>
+
     @GET("reservaciones/{id}")
     suspend fun getReservacionById(@Path("id") id: Int): Response<ReservacionDto>
+
     @GET("reservaciones/usuario/{usuarioId}")
     suspend fun getReservacionesByUsuario(@Path("usuarioId") usuarioId: Int): Response<List<ReservacionDto>>
 
     @GET("reservaciones/codigo/{codigo}")
     suspend fun getReservacionByCodigo(@Path("codigo") codigo: String): Response<ReservacionDto>
+
     @POST("reservaciones")
     suspend fun createReservacion(@Body request: ReservacionRequest): Response<ReservacionDto>
 
     @PUT("reservaciones/{id}")
-    suspend fun updateReservacion(
-        @Path("id") id: Int,
-        @Body request: Map<String, Any>
-    ): Response<Unit>
+    suspend fun updateReservacion(@Path("id") id: Int, @Body request: Map<String, Any>): Response<Unit>
+
     @PUT("reservaciones/{id}/datos")
-    suspend fun updateReservacionDatos(
-        @Path("id") id: Int,
-        @Body request: UpdateDatosRequest
-    ): Response<Unit>
+    suspend fun updateReservacionDatos(@Path("id") id: Int, @Body request: UpdateDatosRequest): Response<Unit>
+
     @PUT("reservaciones/{id}/estado")
     suspend fun updateEstadoReservacion(@Path("id") id: Int, @Body request: EstadoRequest): Response<Unit>
 
@@ -112,12 +117,16 @@ interface ApiService {
     // ==================== MENSAJES ====================
     @GET("mensajes")
     suspend fun getMensajes(): Response<List<MensajeDto>>
+
     @GET("mensajes/{id}")
     suspend fun getMensajeById(@Path("id") id: Int): Response<MensajeDto>
+
     @GET("mensajes/usuario/{usuarioId}")
     suspend fun getMensajesByUsuario(@Path("usuarioId") usuarioId: Int): Response<List<MensajeDto>>
+
     @POST("mensajes")
     suspend fun createMensaje(@Body request: MensajeRequest): Response<MensajeDto>
+
     @PUT("mensajes/{id}/responder")
     suspend fun responderMensaje(@Path("id") id: Int, @Body request: RespuestaRequest): Response<Unit>
 
@@ -127,7 +136,7 @@ interface ApiService {
     @DELETE("mensajes/{id}")
     suspend fun deleteMensaje(@Path("id") id: Int): Response<Unit>
 }
-// Response para upload de imagen
+
 data class ImageUploadResponse(
     val url: String
 )

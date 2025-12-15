@@ -1,11 +1,14 @@
 package edu.ucne.kias_rent_car.domain.repository
 
+import edu.ucne.kias_rent_car.data.remote.Resource
 import edu.ucne.kias_rent_car.domain.model.Mensaje
 
 interface MensajeRepository {
-    suspend fun getMensajes(): List<Mensaje>
-    suspend fun getMensajeById(id: Int): Mensaje?
-    suspend fun sendMensaje(asunto: String, contenido: String): Mensaje?
-    suspend fun responderMensaje(mensajeId: Int, respuesta: String)
-    suspend fun getMensajesByUsuario(usuarioId: Int): List<Mensaje>
+    suspend fun getMensajes(): Resource<List<Mensaje>>
+    suspend fun getMensajeById(id: String): Resource<Mensaje>
+    suspend fun getMensajesByUsuario(usuarioId: Int): Resource<List<Mensaje>>
+    suspend fun createMensajeLocal(asunto: String, contenido: String): Resource<Mensaje>
+    suspend fun sendMensaje(asunto: String, contenido: String): Resource<Mensaje>
+    suspend fun responderMensaje(mensajeId: String, respuesta: String): Resource<Unit>
+    suspend fun postPendingMensajes(): Resource<Unit>
 }

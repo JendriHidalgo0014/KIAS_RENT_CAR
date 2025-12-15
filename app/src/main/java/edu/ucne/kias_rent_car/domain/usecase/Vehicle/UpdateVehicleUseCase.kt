@@ -1,11 +1,11 @@
 package edu.ucne.kias_rent_car.domain.usecase.Vehicle
 
 import edu.ucne.kias_rent_car.data.remote.Resource
-import edu.ucne.kias_rent_car.data.repository.VehicleRepositoryImpl
+import edu.ucne.kias_rent_car.domain.repository.VehicleRepository
 import javax.inject.Inject
 
 class UpdateVehicleUseCase @Inject constructor(
-    private val repository: VehicleRepositoryImpl
+    private val repository: VehicleRepository
 ) {
     suspend operator fun invoke(
         id: String,
@@ -16,16 +16,7 @@ class UpdateVehicleUseCase @Inject constructor(
         transmision: String,
         precioPorDia: Double,
         imagenUrl: String
-    ): Resource<Unit> {
-        return repository.updateVehicle(
-            id = id,
-            modelo = modelo,
-            descripcion = descripcion,
-            categoria = categoria,
-            asientos = asientos,
-            transmision = transmision,
-            precioPorDia = precioPorDia,
-            imagenUrl = imagenUrl
-        )
-    }
+    ): Resource<Unit> = repository.updateVehicle(
+        id, modelo, descripcion, categoria, asientos, transmision, precioPorDia, imagenUrl
+    )
 }

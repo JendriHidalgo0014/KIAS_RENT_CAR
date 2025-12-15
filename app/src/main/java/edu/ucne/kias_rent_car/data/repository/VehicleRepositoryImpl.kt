@@ -15,58 +15,61 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class VehicleRepositoryImpl @Inject constructor(
-    private val remoteDataSource: VehiculoRemoteDataSource,
-    private val vehicleDao: VehicleDao
+    private val localDataSource: VehicleDao,
+    private val remoteDataSource: VehiculoRemoteDataSource
 ) : VehicleRepository {
-    override suspend fun observeAvailableVehicles(): Flow<List<Vehicle>> {
-        return vehicleDao.observeAllVehicles().map { entities ->
-            entities.toDomainList()
-        }
+
+    override fun observeAvailableVehicles(): Flow<List<Vehicle>> {
+        return localDataSource.observeAllVehicles().map { it.toDomainList() }
     }
 
-    override suspend fun observeVehiclesByCategory(category: VehicleCategory): Flow<List<Vehicle>> {
+    override fun observeVehiclesByCategory(category: VehicleCategory): Flow<List<Vehicle>> {
         return if (category == VehicleCategory.ALL) {
             observeAvailableVehicles()
         } else {
-            vehicleDao.observeVehiclesByCategory(category.name).map { entities ->
-                entities.toDomainList()
+            localDataSource.observeVehiclesByCategory(category.name).map { it.toDomainList() }
+        }
+    }
+
+    override fun searchVehicles(query: String): Flow<List<Vehicle>> {
+        return localDataSource.searchVehicles("%$query%").map { it.toDomainList() }
+    }
+
+    override suspend fun getVehicle(id: String): Resource<Vehicle> {
+        val local = localDataSource.getById(id)
+        if (local != null) {
+            return Resource.Success(local.toDomain())
+        }
+
+        val remoteId = id.toIntOrNull()
+        if (remoteId != null) {
+            val byRemote = localDataSource.getByRemoteId(remoteId)
+            if (byRemote != null) {
+                return Resource.Success(byRemote.toDomain())
+            }
+
+            return when (val result = remoteDataSource.getVehiculoById(remoteId)) {
+                is Resource.Success -> Resource.Success(result.data.toDomain())
+                is Resource.Error -> Resource.Error(result.message)
+                is Resource.Loading -> Resource.Loading()
             }
         }
-    }
-
-    override suspend fun searchVehicles(query: String): Flow<List<Vehicle>> {
-        return vehicleDao.searchVehicles("%$query%").map { entities ->
-            entities.toDomainList()
-        }
-    }
-
-    override suspend fun getVehicle(id: String): Vehicle? {
-        val local = vehicleDao.getVehicleById(id)
-        if (local != null) {
-            return local.toDomain()
-        }
-
-        val remoteId = id.toIntOrNull() ?: return null
-        val remoto = remoteDataSource.getVehiculoById(remoteId)
-        return remoto?.toDomain()
+        return Resource.Error("ID inválido")
     }
 
     override suspend fun refreshVehicles(): Resource<Unit> {
-        return try {
-            val remotos = remoteDataSource.getAllVehiculos()
-            if (remotos != null) {
-                vehicleDao.deleteAll()
-                vehicleDao.insertVehicles(remotos.toEntityList())
+        return when (val result = remoteDataSource.getAllVehiculos()) {
+            is Resource.Success -> {
+                localDataSource.deleteAll()
+                localDataSource.insertVehicles(result.data.toEntityList())
                 Resource.Success(Unit)
-            } else {
-                Resource.Error("Error al obtener vehículos")
             }
-        } catch (e: Exception) {
-            Resource.Error("Error de conexión: ${e.message}")
+            is Resource.Error -> Resource.Error(result.message)
+            is Resource.Loading -> Resource.Loading()
         }
     }
 
-    suspend fun createVehicle(
+    override suspend fun createVehicle(
         modelo: String,
         descripcion: String,
         categoria: String,
@@ -75,28 +78,19 @@ class VehicleRepositoryImpl @Inject constructor(
         precioPorDia: Double,
         imagenUrl: String
     ): Resource<Vehicle> {
-        return try {
-            val response = remoteDataSource.createVehiculo(
-                modelo = modelo,
-                descripcion = descripcion,
-                categoria = categoria,
-                asientos = asientos,
-                transmision = transmision,
-                precioPorDia = precioPorDia,
-                imagenUrl = imagenUrl
-            )
-            if (response != null) {
-                vehicleDao.insertVehicle(response.toEntity())
-                Resource.Success(response.toDomain())
-            } else {
-                Resource.Error("Error al crear vehículo")
+        return when (val result = remoteDataSource.createVehiculo(
+            modelo, descripcion, categoria, asientos, transmision, precioPorDia, imagenUrl
+        )) {
+            is Resource.Success -> {
+                localDataSource.insertVehicle(result.data.toEntity())
+                Resource.Success(result.data.toDomain())
             }
-        } catch (e: Exception) {
-            Resource.Error("Error: ${e.message}")
+            is Resource.Error -> Resource.Error(result.message)
+            is Resource.Loading -> Resource.Loading()
         }
     }
 
-    suspend fun updateVehicle(
+    override suspend fun updateVehicle(
         id: String,
         modelo: String,
         descripcion: String,
@@ -106,41 +100,40 @@ class VehicleRepositoryImpl @Inject constructor(
         precioPorDia: Double,
         imagenUrl: String
     ): Resource<Unit> {
-        return try {
-            val remoteId = id.toIntOrNull() ?: return Resource.Error("ID inválido")
-            val success = remoteDataSource.updateVehiculo(
-                id = remoteId,
-                modelo = modelo,
-                descripcion = descripcion,
-                categoria = categoria,
-                asientos = asientos,
-                transmision = transmision,
-                precioPorDia = precioPorDia,
-                imagenUrl = imagenUrl
-            )
-            if (success) {
+        val vehicle = localDataSource.getById(id)
+        val remoteId = vehicle?.remoteId ?: id.toIntOrNull()
+
+        if (remoteId == null) {
+            return Resource.Error("ID inválido")
+        }
+
+        return when (val result = remoteDataSource.updateVehiculo(
+            remoteId, modelo, descripcion, categoria, asientos, transmision, precioPorDia, imagenUrl
+        )) {
+            is Resource.Success -> {
                 refreshVehicles()
                 Resource.Success(Unit)
-            } else {
-                Resource.Error("Error al actualizar")
             }
-        } catch (e: Exception) {
-            Resource.Error("Error: ${e.message}")
+            is Resource.Error -> Resource.Error(result.message)
+            is Resource.Loading -> Resource.Loading()
         }
     }
 
-    suspend fun deleteVehicle(id: String): Resource<Unit> {
-        return try {
-            val remoteId = id.toIntOrNull() ?: return Resource.Error("ID inválido")
-            val success = remoteDataSource.deleteVehiculo(remoteId)
-            if (success) {
-                vehicleDao.deleteById(id)
+    override suspend fun deleteVehicle(id: String): Resource<Unit> {
+        val vehicle = localDataSource.getById(id)
+        val remoteId = vehicle?.remoteId ?: id.toIntOrNull()
+
+        if (remoteId == null) {
+            return Resource.Error("ID inválido")
+        }
+
+        return when (val result = remoteDataSource.deleteVehiculo(remoteId)) {
+            is Resource.Success -> {
+                localDataSource.deleteById(id)
                 Resource.Success(Unit)
-            } else {
-                Resource.Error("Error al eliminar")
             }
-        } catch (e: Exception) {
-            Resource.Error("Error: ${e.message}")
+            is Resource.Error -> Resource.Error(result.message)
+            is Resource.Loading -> Resource.Loading()
         }
     }
 }
