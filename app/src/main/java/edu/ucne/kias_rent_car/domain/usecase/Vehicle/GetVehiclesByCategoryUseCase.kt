@@ -9,7 +9,6 @@ import javax.inject.Inject
 class GetVehiclesByCategoryUseCase @Inject constructor(
     private val repository: VehicleRepository
 ) {
-    suspend operator fun invoke(category: VehicleCategory): Flow<List<Vehicle>> {
-        return repository.observeVehiclesByCategory(category)
-    }
+    operator fun invoke(category: VehicleCategory): Flow<List<Vehicle>> =
+        repository.observeVehiclesByCategory(category)
 }
