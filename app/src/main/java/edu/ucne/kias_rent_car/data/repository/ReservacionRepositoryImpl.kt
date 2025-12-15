@@ -30,6 +30,10 @@ class ReservacionRepositoryImpl @Inject constructor(
     private val ubicacionDao: UbicacionDao
 ) : ReservacionRepository {
 
+    private val errorDesconocido = "Error desconocido"
+    private val errorReservacionNoEncontrada = "Reservación no encontrada"
+    private val errorAlObtenerReservaciones = "Error al obtener reservaciones"
+
     override suspend fun getReservaciones(): Resource<List<Reservacion>> {
         return try {
             when (val result = remoteDataSource.getReservaciones()) {
@@ -42,7 +46,7 @@ class ReservacionRepositoryImpl @Inject constructor(
                     if (locales.isNotEmpty()) {
                         Resource.Success(locales.toDomainList())
                     } else {
-                        Resource.Error(result.message ?: "Error desconocido")
+                        Resource.Error(result.message ?: errorDesconocido)
                     }
                 }
                 is Resource.Loading -> Resource.Loading()
@@ -52,7 +56,7 @@ class ReservacionRepositoryImpl @Inject constructor(
             if (locales.isNotEmpty()) {
                 Resource.Success(locales.toDomainList())
             } else {
-                Resource.Error(e.localizedMessage ?: "Error al obtener reservaciones")
+                Resource.Error(e.localizedMessage ?: errorAlObtenerReservaciones)
             }
         }
     }
@@ -87,12 +91,12 @@ class ReservacionRepositoryImpl @Inject constructor(
 
             return when (val result = remoteDataSource.getReservacionById(remoteId)) {
                 is Resource.Success -> Resource.Success(result.data!!.toDomain())
-                is Resource.Error -> Resource.Error(result.message ?: "Error desconocido")
+                is Resource.Error -> Resource.Error(result.message ?: errorDesconocido)
                 is Resource.Loading -> Resource.Loading()
             }
         }
 
-        return Resource.Error("Reservación no encontrada")
+        return Resource.Error(errorReservacionNoEncontrada)
     }
 
     override suspend fun createReservacionLocal(config: ReservationConfig): Resource<Reservacion> {
@@ -101,36 +105,21 @@ class ReservacionRepositoryImpl @Inject constructor(
         val vehiculo = vehicleDao.getById(config.vehicleId)
         val ubicacionRecogida = ubicacionDao.getByNombre(config.lugarRecogida)
         val ubicacionDevolucion = ubicacionDao.getByNombre(config.lugarDevolucion)
-        val codigoReserva = "KR-${System.currentTimeMillis().toString().takeLast(6)}"
+        val codigoReserva = generateCodigoReserva()
 
         vehiculo?.let { vehicleDao.updateDisponibilidad(config.vehicleId, false) }
 
-        val entity = ReservacionEntity(
-            id = UUID.randomUUID().toString(),
-            remoteId = null,
+        val entity = buildReservacionEntity(
+            config = config,
             usuarioId = usuarioId,
-            vehiculoId = vehiculo?.remoteId ?: config.vehicleId.toIntOrNull() ?: 0,
-            fechaRecogida = config.fechaRecogida,
-            horaRecogida = config.horaRecogida,
-            fechaDevolucion = config.fechaDevolucion,
-            horaDevolucion = config.horaDevolucion,
-            ubicacionRecogidaId = ubicacionRecogida?.remoteId ?: config.ubicacionRecogidaId,
-            ubicacionDevolucionId = ubicacionDevolucion?.remoteId ?: config.ubicacionDevolucionId,
-            estado = "Confirmada",
-            subtotal = config.subtotal,
-            impuestos = config.impuestos,
-            total = config.total,
+            vehiculo = vehiculo,
+            ubicacionRecogida = ubicacionRecogida,
+            ubicacionDevolucion = ubicacionDevolucion,
             codigoReserva = codigoReserva,
-            fechaCreacion = LocalDate.now().toString(),
-            isPendingCreate = true,
-            isPendingUpdate = false,
-            isPendingDelete = false,
-            vehiculoModelo = vehiculo?.modelo ?: "",
-            vehiculoImagenUrl = vehiculo?.imagenUrl ?: "",
-            vehiculoPrecioPorDia = vehiculo?.precioPorDia ?: 0.0,
-            ubicacionRecogidaNombre = config.lugarRecogida,
-            ubicacionDevolucionNombre = config.lugarDevolucion
+            remoteId = null,
+            isPendingCreate = true
         )
+
         localDataSource.insertReservacion(entity)
         return Resource.Success(entity.toDomain())
     }
@@ -139,7 +128,7 @@ class ReservacionRepositoryImpl @Inject constructor(
         val usuarioLogueado = usuarioDao.getLoggedInUsuario()
         val usuarioId = usuarioLogueado?.remoteId ?: 1
         val vehiculo = vehicleDao.getById(config.vehicleId)
-        val codigoReserva = "KR-${System.currentTimeMillis().toString().takeLast(6)}"
+        val codigoReserva = generateCodigoReserva()
 
         val request = ReservacionRequest(
             reservaId = 0,
@@ -161,32 +150,17 @@ class ReservacionRepositoryImpl @Inject constructor(
         return when (val result = remoteDataSource.createReservacion(request)) {
             is Resource.Success -> {
                 val data = result.data!!
-                val entity = ReservacionEntity(
-                    id = UUID.randomUUID().toString(),
-                    remoteId = data.reservacionId,
+                val entity = buildReservacionEntity(
+                    config = config,
                     usuarioId = usuarioId,
-                    vehiculoId = vehiculo?.remoteId ?: 0,
-                    fechaRecogida = config.fechaRecogida,
-                    horaRecogida = config.horaRecogida,
-                    fechaDevolucion = config.fechaDevolucion,
-                    horaDevolucion = config.horaDevolucion,
-                    ubicacionRecogidaId = config.ubicacionRecogidaId,
-                    ubicacionDevolucionId = config.ubicacionDevolucionId,
-                    estado = "Confirmada",
-                    subtotal = config.subtotal,
-                    impuestos = config.impuestos,
-                    total = config.total,
+                    vehiculo = vehiculo,
+                    ubicacionRecogida = null,
+                    ubicacionDevolucion = null,
                     codigoReserva = data.codigoReserva ?: codigoReserva,
-                    fechaCreacion = LocalDate.now().toString(),
-                    isPendingCreate = false,
-                    isPendingUpdate = false,
-                    isPendingDelete = false,
-                    vehiculoModelo = vehiculo?.modelo ?: "",
-                    vehiculoImagenUrl = vehiculo?.imagenUrl ?: "",
-                    vehiculoPrecioPorDia = vehiculo?.precioPorDia ?: 0.0,
-                    ubicacionRecogidaNombre = config.lugarRecogida,
-                    ubicacionDevolucionNombre = config.lugarDevolucion
+                    remoteId = data.reservacionId,
+                    isPendingCreate = false
                 )
+
                 localDataSource.insertReservacion(entity)
                 vehiculo?.let { vehicleDao.updateDisponibilidad(config.vehicleId, false) }
                 Resource.Success(entity.toDomain())
@@ -281,7 +255,7 @@ class ReservacionRepositoryImpl @Inject constructor(
                 result.data?.toEntityList()?.let { localDataSource.insertReservaciones(it) }
                 Resource.Success(Unit)
             }
-            is Resource.Error -> Resource.Error(result.message ?: "Error desconocido")
+            is Resource.Error -> Resource.Error(result.message ?: errorDesconocido)
             is Resource.Loading -> Resource.Loading()
         }
     }
@@ -327,5 +301,45 @@ class ReservacionRepositoryImpl @Inject constructor(
         }
 
         return Resource.Success(Unit)
+    }
+    private fun generateCodigoReserva(): String {
+        return "KR-${System.currentTimeMillis().toString().takeLast(6)}"
+    }
+    private fun buildReservacionEntity(
+        config: ReservationConfig,
+        usuarioId: Int,
+        vehiculo: edu.ucne.kias_rent_car.data.local.entities.VehicleEntity?,
+        ubicacionRecogida: edu.ucne.kias_rent_car.data.local.entities.UbicacionEntity?,
+        ubicacionDevolucion: edu.ucne.kias_rent_car.data.local.entities.UbicacionEntity?,
+        codigoReserva: String,
+        remoteId: Int?,
+        isPendingCreate: Boolean
+    ): ReservacionEntity {
+        return ReservacionEntity(
+            id = UUID.randomUUID().toString(),
+            remoteId = remoteId,
+            usuarioId = usuarioId,
+            vehiculoId = vehiculo?.remoteId ?: config.vehicleId.toIntOrNull() ?: 0,
+            fechaRecogida = config.fechaRecogida,
+            horaRecogida = config.horaRecogida,
+            fechaDevolucion = config.fechaDevolucion,
+            horaDevolucion = config.horaDevolucion,
+            ubicacionRecogidaId = ubicacionRecogida?.remoteId ?: config.ubicacionRecogidaId,
+            ubicacionDevolucionId = ubicacionDevolucion?.remoteId ?: config.ubicacionDevolucionId,
+            estado = "Confirmada",
+            subtotal = config.subtotal,
+            impuestos = config.impuestos,
+            total = config.total,
+            codigoReserva = codigoReserva,
+            fechaCreacion = LocalDate.now().toString(),
+            isPendingCreate = isPendingCreate,
+            isPendingUpdate = false,
+            isPendingDelete = false,
+            vehiculoModelo = vehiculo?.modelo ?: "",
+            vehiculoImagenUrl = vehiculo?.imagenUrl ?: "",
+            vehiculoPrecioPorDia = vehiculo?.precioPorDia ?: 0.0,
+            ubicacionRecogidaNombre = config.lugarRecogida,
+            ubicacionDevolucionNombre = config.lugarDevolucion
+        )
     }
 }

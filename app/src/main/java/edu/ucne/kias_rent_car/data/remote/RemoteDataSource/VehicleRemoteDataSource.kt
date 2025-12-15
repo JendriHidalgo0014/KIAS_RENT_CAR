@@ -9,17 +9,21 @@ import javax.inject.Inject
 class VehiculoRemoteDataSource @Inject constructor(
     private val api: ApiService
 ) {
+    private val errorRespuestaVacia = "Respuesta vacía del servidor"
+    private val errorRed = "Error de red"
+    private val errorVehiculoNoEncontrado = "Vehículo no encontrado"
+
     suspend fun getVehiculosDisponibles(): Resource<List<VehiculoDto>> {
         return try {
             val response = api.getVehiculosDisponibles()
             if (response.isSuccessful) {
                 response.body()?.let { Resource.Success(it) }
-                    ?: Resource.Error("Respuesta vacía del servidor")
+                    ?: Resource.Error(errorRespuestaVacia)
             } else {
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 
@@ -28,12 +32,12 @@ class VehiculoRemoteDataSource @Inject constructor(
             val response = api.getAllVehiculos()
             if (response.isSuccessful) {
                 response.body()?.let { Resource.Success(it) }
-                    ?: Resource.Error("Respuesta vacía del servidor")
+                    ?: Resource.Error(errorRespuestaVacia)
             } else {
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 
@@ -42,12 +46,12 @@ class VehiculoRemoteDataSource @Inject constructor(
             val response = api.getVehiculoById(id)
             if (response.isSuccessful) {
                 response.body()?.let { Resource.Success(it) }
-                    ?: Resource.Error("Vehículo no encontrado")
+                    ?: Resource.Error(errorVehiculoNoEncontrado)
             } else {
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 
@@ -73,12 +77,12 @@ class VehiculoRemoteDataSource @Inject constructor(
             val response = api.createVehiculo(request)
             if (response.isSuccessful) {
                 response.body()?.let { Resource.Success(it) }
-                    ?: Resource.Error("Respuesta vacía del servidor")
+                    ?: Resource.Error(errorRespuestaVacia)
             } else {
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 
@@ -109,7 +113,7 @@ class VehiculoRemoteDataSource @Inject constructor(
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 
@@ -122,7 +126,7 @@ class VehiculoRemoteDataSource @Inject constructor(
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 }
