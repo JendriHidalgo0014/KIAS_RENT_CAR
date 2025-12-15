@@ -9,8 +9,13 @@ class CreateReservacionUseCase @Inject constructor(
     private val repository: ReservacionRepository
 ) {
     suspend operator fun invoke(): Resource<Reservacion> {
-        val config = repository.getReservationConfig()
-            ?: return Resource.Error("No hay configuración de reserva")
-        return repository.createReservacion(config)
+        return when (val configResult = repository.getReservationConfig()) {
+            is Resource.Success -> {
+                configResult.data?.let { repository.createReservacion(it) }
+                    ?: Resource.Error("No hay configuración de reserva")
+            }
+            is Resource.Error -> Resource.Error(configResult.message ?: "Error desconocido")
+            is Resource.Loading -> Resource.Loading()
+        }
     }
 }

@@ -1,4 +1,4 @@
-package edu.ucne.kias_rent_car.data.remote.Dto.UsuarioDtos
+package edu.ucne.kias_rent_car.data.remote.dto
 
 data class MensajeRequest(
     val usuarioId: Int,

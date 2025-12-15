@@ -1,10 +1,11 @@
 package edu.ucne.kias_rent_car.data.repository
 
 import edu.ucne.kias_rent_car.data.local.dao.UbicacionDao
-import edu.ucne.kias_rent_car.data.local.mappers.UbicacionMapper.toDomain
-import edu.ucne.kias_rent_car.data.local.mappers.UbicacionMapper.toDomainList
-import edu.ucne.kias_rent_car.data.local.mappers.UbicacionMapper.toEntityList
-import edu.ucne.kias_rent_car.data.remote.RemoteDataSource.UbicacionRemoteDataSource
+import edu.ucne.kias_rent_car.data.mappers.UbicacionMapper.toDomain
+import edu.ucne.kias_rent_car.data.mappers.UbicacionMapper.toDomainList
+import edu.ucne.kias_rent_car.data.mappers.UbicacionMapper.toEntityList
+import edu.ucne.kias_rent_car.data.remote.Resource
+import edu.ucne.kias_rent_car.data.remote.datasource.UbicacionRemoteDataSource
 import edu.ucne.kias_rent_car.domain.model.Ubicacion
 import edu.ucne.kias_rent_car.domain.repository.UbicacionRepository
 import kotlinx.coroutines.flow.Flow
@@ -13,42 +14,55 @@ import javax.inject.Inject
 
 class UbicacionRepositoryImpl @Inject constructor(
     private val remoteDataSource: UbicacionRemoteDataSource,
-    private val ubicacionDao: UbicacionDao,
- ) : UbicacionRepository {
+    private val localDataSource: UbicacionDao
+) : UbicacionRepository {
+
     override suspend fun getUbicaciones(): List<Ubicacion> {
-        try {
-            val remotas = remoteDataSource.getUbicaciones()
-            if (remotas != null && remotas.isNotEmpty()) {
-                ubicacionDao.insertUbicaciones(remotas.toEntityList())
+        return try {
+            when (val result = remoteDataSource.getUbicaciones()) {
+                is Resource.Success -> {
+                    result.data?.toEntityList()?.let { localDataSource.insertUbicaciones(it) }
+                    localDataSource.getUbicaciones().toDomainList()
+                }
+                else -> localDataSource.getUbicaciones().toDomainList()
             }
         } catch (e: Exception) {
-        }
-        return ubicacionDao.getUbicaciones().toDomainList()
-    }
-
-    override suspend fun observeUbicaciones(): Flow<List<Ubicacion>> {
-        return ubicacionDao.observeUbicaciones().map { entities ->
-            entities.toDomainList()
+            localDataSource.getUbicaciones().toDomainList()
         }
     }
 
-    override suspend fun getUbicacionById(id: Int): Ubicacion? {
-        val local = ubicacionDao.getUbicacionById(id)
+    override fun observeUbicaciones(): Flow<List<Ubicacion>> {
+        return localDataSource.observeUbicaciones().map { it.toDomainList() }
+    }
+
+    override suspend fun getUbicacionById(id: String): Ubicacion? {
+        val local = localDataSource.getById(id)
         if (local != null) {
             return local.toDomain()
         }
-        val remoto = remoteDataSource.getUbicacionById(id)
-        return remoto?.toDomain()
+
+        val remoteId = id.toIntOrNull()
+        if (remoteId != null) {
+            val byRemote = localDataSource.getByRemoteId(remoteId)
+            if (byRemote != null) {
+                return byRemote.toDomain()
+            }
+
+            return when (val result = remoteDataSource.getUbicacionById(remoteId)) {
+                is Resource.Success -> result.data?.toDomain()
+                else -> null
+            }
+        }
+        return null
     }
 
     override suspend fun refreshUbicaciones() {
-        try {
-            val remotas = remoteDataSource.getUbicaciones()
-            if (remotas != null) {
-                ubicacionDao.deleteAll()
-                ubicacionDao.insertUbicaciones(remotas.toEntityList())
+        when (val result = remoteDataSource.getUbicaciones()) {
+            is Resource.Success -> {
+                localDataSource.deleteAll()
+                result.data?.toEntityList()?.let { localDataSource.insertUbicaciones(it) }
             }
-        } catch (e: Exception) {
+            else -> Unit
         }
     }
 }

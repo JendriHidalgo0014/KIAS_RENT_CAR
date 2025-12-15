@@ -8,7 +8,5 @@ import javax.inject.Inject
 class SearchVehiclesUseCase @Inject constructor(
     private val repository: VehicleRepository
 ) {
-    suspend operator fun invoke(query: String): Flow<List<Vehicle>> {
-        return repository.searchVehicles(query)
-    }
+    operator fun invoke(query: String): Flow<List<Vehicle>> = repository.searchVehicles(query)
 }

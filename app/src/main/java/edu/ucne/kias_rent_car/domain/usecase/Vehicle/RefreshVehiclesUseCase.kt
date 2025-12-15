@@ -7,7 +7,5 @@ import javax.inject.Inject
 class RefreshVehiclesUseCase @Inject constructor(
     private val repository: VehicleRepository
 ) {
-    suspend operator fun invoke(): Resource<Unit> {
-        return repository.refreshVehicles()
-    }
+    suspend operator fun invoke(): Resource<Unit> = repository.refreshVehicles()
 }

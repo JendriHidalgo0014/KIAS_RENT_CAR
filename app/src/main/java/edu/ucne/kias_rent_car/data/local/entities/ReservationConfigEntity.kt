@@ -1,12 +1,12 @@
-package edu.ucne.kias_rent_car.data.local.entity
+package edu.ucne.kias_rent_car.data.local.entities
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import java.util.UUID
 
 @Entity(tableName = "reservation_config")
 data class ReservationConfigEntity(
-    @PrimaryKey
-    val id: Int = 1,
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val vehicleId: String,
     val lugarRecogida: String,
     val lugarDevolucion: String,

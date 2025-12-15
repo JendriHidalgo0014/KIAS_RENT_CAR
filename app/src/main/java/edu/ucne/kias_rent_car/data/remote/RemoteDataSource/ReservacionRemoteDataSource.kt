@@ -1,55 +1,87 @@
 package edu.ucne.kias_rent_car.data.remote.datasource
 
 import edu.ucne.kias_rent_car.data.remote.ApiService
-import edu.ucne.kias_rent_car.data.remote.Dto.ReservationDtos.EstadoRequest
-import edu.ucne.kias_rent_car.data.remote.Dto.ReservationDtos.ReservacionDto
-import edu.ucne.kias_rent_car.data.remote.Dto.ReservationDtos.ReservacionRequest
-import edu.ucne.kias_rent_car.data.remote.Dto.ReservationDtos.UpdateDatosRequest
+
+import edu.ucne.kias_rent_car.data.remote.Resource
+import edu.ucne.kias_rent_car.data.remote.dto.EstadoRequest
+import edu.ucne.kias_rent_car.data.remote.dto.ReservacionDto
+import edu.ucne.kias_rent_car.data.remote.dto.ReservacionRequest
+import edu.ucne.kias_rent_car.data.remote.dto.UpdateDatosRequest
+
 import javax.inject.Inject
 
 class ReservacionRemoteDataSource @Inject constructor(
-    private val apiService: ApiService
+    private val api: ApiService
 ) {
-    suspend fun getReservaciones(): List<ReservacionDto>? {
+    suspend fun getReservaciones(): Resource<List<ReservacionDto>> {
         return try {
-            val response = apiService.getReservaciones()
-            if (response.isSuccessful) response.body() else null
+            val response = api.getReservaciones()
+            if (response.isSuccessful) {
+                response.body()?.let { Resource.Success(it) }
+                    ?: Resource.Error("Respuesta vacía del servidor")
+            } else {
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
+            }
         } catch (e: Exception) {
-            null
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
-    suspend fun getReservacionesByUsuario(usuarioId: Int): List<ReservacionDto>? {
+
+    suspend fun getReservacionesByUsuario(usuarioId: Int): Resource<List<ReservacionDto>> {
         return try {
-            val response = apiService.getReservacionesByUsuario(usuarioId)
-            if (response.isSuccessful) response.body() else null
+            val response = api.getReservacionesByUsuario(usuarioId)
+            if (response.isSuccessful) {
+                response.body()?.let { Resource.Success(it) }
+                    ?: Resource.Error("Respuesta vacía del servidor")
+            } else {
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
+            }
         } catch (e: Exception) {
-            null
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
-    suspend fun getReservacionById(id: Int): ReservacionDto? {
+
+    suspend fun getReservacionById(id: Int): Resource<ReservacionDto> {
         return try {
-            val response = apiService.getReservacionById(id)
-            if (response.isSuccessful) response.body() else null
+            val response = api.getReservacionById(id)
+            if (response.isSuccessful) {
+                response.body()?.let { Resource.Success(it) }
+                    ?: Resource.Error("Reservación no encontrada")
+            } else {
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
+            }
         } catch (e: Exception) {
-            null
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
-    suspend fun createReservacion(request: ReservacionRequest): ReservacionDto? {
+
+    suspend fun createReservacion(request: ReservacionRequest): Resource<ReservacionDto> {
         return try {
-            val response = apiService.createReservacion(request)
-            if (response.isSuccessful) response.body() else null
+            val response = api.createReservacion(request)
+            if (response.isSuccessful) {
+                response.body()?.let { Resource.Success(it) }
+                    ?: Resource.Error("Respuesta vacía del servidor")
+            } else {
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
+            }
         } catch (e: Exception) {
-            null
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
-    suspend fun updateEstado(reservacionId: Int, estado: String): Boolean {
+
+    suspend fun updateEstado(reservacionId: Int, estado: String): Resource<Unit> {
         return try {
-            val response = apiService.updateEstadoReservacion(reservacionId, EstadoRequest(estado))
-            response.isSuccessful
+            val response = api.updateEstadoReservacion(reservacionId, EstadoRequest(estado))
+            if (response.isSuccessful) {
+                Resource.Success(Unit)
+            } else {
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
+            }
         } catch (e: Exception) {
-            false
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
+
     suspend fun updateReservacion(
         reservacionId: Int,
         ubicacionRecogidaId: Int,
@@ -58,7 +90,7 @@ class ReservacionRemoteDataSource @Inject constructor(
         horaRecogida: String,
         fechaDevolucion: String,
         horaDevolucion: String
-    ): Boolean {
+    ): Resource<Unit> {
         return try {
             val request = UpdateDatosRequest(
                 ubicacionRecogidaId = ubicacionRecogidaId,
@@ -68,19 +100,14 @@ class ReservacionRemoteDataSource @Inject constructor(
                 fechaDevolucion = fechaDevolucion,
                 horaDevolucion = horaDevolucion
             )
-            //Puse estos logs para que me mostrara un error en el Logcat que salia de este archivo,
-            //esto porque no se queria mostrar aunque me marcaba este archivo. Esto no afecta en mas nada
-            //el codigo, solo hace lo que se le pide.
-            android.util.Log.d("UPDATE_API", "Enviando: $request")
-
-            val response = apiService.updateReservacionDatos(reservacionId, request)
-
-            android.util.Log.d("UPDATE_API", "Response: ${response.code()}")
-
-            response.isSuccessful
+            val response = api.updateReservacionDatos(reservacionId, request)
+            if (response.isSuccessful) {
+                Resource.Success(Unit)
+            } else {
+                Resource.Error("HTTP ${response.code()} ${response.message()}")
+            }
         } catch (e: Exception) {
-            android.util.Log.e("UPDATE_API", "Error: ${e.message}", e)
-            false
+            Resource.Error(e.localizedMessage ?: "Error de red")
         }
     }
 }

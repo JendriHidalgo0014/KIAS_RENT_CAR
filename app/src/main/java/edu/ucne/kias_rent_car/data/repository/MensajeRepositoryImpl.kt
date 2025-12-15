@@ -1,131 +1,185 @@
 package edu.ucne.kias_rent_car.data.repository
 
-import android.content.Context
-import android.util.Log
-import dagger.hilt.android.qualifiers.ApplicationContext
 import edu.ucne.kias_rent_car.data.local.dao.MensajeDao
 import edu.ucne.kias_rent_car.data.local.dao.UsuarioDao
-import edu.ucne.kias_rent_car.data.local.entity.MensajeEntity
+import edu.ucne.kias_rent_car.data.local.entities.MensajeEntity
 import edu.ucne.kias_rent_car.data.mappers.MensajeMapper.toDomain
 import edu.ucne.kias_rent_car.data.mappers.MensajeMapper.toDomainList
 import edu.ucne.kias_rent_car.data.mappers.MensajeMapper.toEntityList
+import edu.ucne.kias_rent_car.data.remote.Resource
 import edu.ucne.kias_rent_car.data.remote.datasource.MensajeRemoteDataSource
-import edu.ucne.kias_rent_car.data.sync.SyncTrigger
 import edu.ucne.kias_rent_car.domain.model.Mensaje
 import edu.ucne.kias_rent_car.domain.repository.MensajeRepository
+import java.time.LocalDateTime
+import java.util.UUID
 import javax.inject.Inject
-//Se le agregó Logs al codigo porque se me presentaban errores que no me aparecian ni
-//en el build ni en el Logcat, de no ser por eso no los pongo.
+
 class MensajeRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context,
+    private val localDataSource: MensajeDao,
     private val remoteDataSource: MensajeRemoteDataSource,
-    private val mensajeDao: MensajeDao,
     private val usuarioDao: UsuarioDao
 ) : MensajeRepository {
-    companion object {
-        private const val TAG = "MensajeRepo"
-    }
 
-    override suspend fun getMensajes(): List<Mensaje> {
-        try {
-            val remotos = remoteDataSource.getMensajes()
-            if (remotos != null && remotos.isNotEmpty()) {
-                val existingPending = mensajeDao.getPendingCreate() + mensajeDao.getPendingRespuesta()
-                val pendingIds = existingPending.map { it.mensajeId }.toSet()
-
-                val toInsert = remotos.toEntityList().filter { it.mensajeId !in pendingIds }
-                mensajeDao.insertMensajes(toInsert)
+    override suspend fun getMensajes(): Resource<List<Mensaje>> {
+        return try {
+            when (val result = remoteDataSource.getMensajes()) {
+                is Resource.Success -> {
+                    val pendingIds = (localDataSource.getPendingCreate() + localDataSource.getPendingUpdate())
+                        .mapNotNull { it.remoteId }.toSet()
+                    val toInsert = result.data?.toEntityList()?.filter { it.remoteId !in pendingIds } ?: emptyList()
+                    localDataSource.insertMensajes(toInsert)
+                    Resource.Success(localDataSource.getMensajes().toDomainList())
+                }
+                is Resource.Error -> {
+                    val locales = localDataSource.getMensajes()
+                    if (locales.isNotEmpty()) {
+                        Resource.Success(locales.toDomainList())
+                    } else {
+                        Resource.Error(result.message ?: "Error desconocido")
+                    }
+                }
+                is Resource.Loading -> Resource.Loading()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error obteniendo remotos: ${e.message}")
+            val locales = localDataSource.getMensajes()
+            if (locales.isNotEmpty()) {
+                Resource.Success(locales.toDomainList())
+            } else {
+                Resource.Error(e.localizedMessage ?: "Error al obtener mensajes")
+            }
         }
-        return mensajeDao.getMensajes().toDomainList()
     }
 
-    override suspend fun getMensajeById(id: Int): Mensaje? {
-        try {
-            val remoto = remoteDataSource.getMensajeById(id)
-            if (remoto != null) {
-                return remoto.toDomain()
+    override suspend fun getMensajeById(id: String): Resource<Mensaje> {
+        val local = localDataSource.getById(id)
+        if (local != null) {
+            return Resource.Success(local.toDomain())
+        }
+
+        val remoteId = id.toIntOrNull()
+        if (remoteId != null) {
+            val byRemote = localDataSource.getByRemoteId(remoteId)
+            if (byRemote != null) {
+                return Resource.Success(byRemote.toDomain())
+            }
+
+            return when (val result = remoteDataSource.getMensajeById(remoteId)) {
+                is Resource.Success -> Resource.Success(result.data!!.toDomain())
+                is Resource.Error -> Resource.Error(result.message ?: "Error desconocido")
+                is Resource.Loading -> Resource.Loading()
+            }
+        }
+
+        return Resource.Error("Mensaje no encontrado")
+    }
+
+    override suspend fun getMensajesByUsuario(usuarioId: Int): Resource<List<Mensaje>> {
+        return try {
+            when (val result = remoteDataSource.getMensajesByUsuario(usuarioId)) {
+                is Resource.Success -> {
+                    result.data?.toEntityList()?.let { localDataSource.insertMensajes(it) }
+                    Resource.Success(localDataSource.getMensajesByUsuario(usuarioId).toDomainList())
+                }
+                is Resource.Error -> Resource.Success(localDataSource.getMensajesByUsuario(usuarioId).toDomainList())
+                is Resource.Loading -> Resource.Loading()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error: ${e.message}")
+            Resource.Success(localDataSource.getMensajesByUsuario(usuarioId).toDomainList())
         }
-        return mensajeDao.getMensajeById(id)?.toDomain()
     }
 
-    override suspend fun sendMensaje(asunto: String, contenido: String): Mensaje? {
+    override suspend fun createMensajeLocal(asunto: String, contenido: String): Resource<Mensaje> {
         val usuarioLogueado = usuarioDao.getLoggedInUsuario()
-        val usuarioId = usuarioLogueado?.usuarioId ?: 1
+        val usuarioId = usuarioLogueado?.remoteId ?: 1
         val nombreUsuario = usuarioLogueado?.nombre ?: "Usuario"
-        val entityLocal = MensajeEntity(
-            mensajeId = 0,
+
+        val entity = MensajeEntity(
+            id = UUID.randomUUID().toString(),
             remoteId = null,
             usuarioId = usuarioId,
             nombreUsuario = nombreUsuario,
             asunto = asunto,
             contenido = contenido,
             respuesta = null,
-            fechaCreacion = java.time.LocalDateTime.now().toString(),
+            fechaCreacion = LocalDateTime.now().toString(),
             leido = false,
-            isPendingCreate = true
+            isPendingCreate = true,
+            isPendingUpdate = false
         )
-        mensajeDao.insertMensaje(entityLocal)
-        Log.d(TAG, "Mensaje guardado localmente")
+        localDataSource.insertMensaje(entity)
+        return Resource.Success(entity.toDomain())
+    }
 
-        return try {
-            val response = remoteDataSource.sendMensaje(
-                usuarioId = usuarioId,
-                asunto = asunto,
-                contenido = contenido
-            )
+    override suspend fun sendMensaje(asunto: String, contenido: String): Resource<Mensaje> {
+        val usuarioLogueado = usuarioDao.getLoggedInUsuario()
+        val usuarioId = usuarioLogueado?.remoteId ?: 1
 
-            if (response != null) {
-                val updatedEntity = entityLocal.copy(
-                    remoteId = response.mensajeId,
-                    isPendingCreate = false
+        return when (val result = remoteDataSource.sendMensaje(usuarioId, asunto, contenido)) {
+            is Resource.Success -> {
+                val entity = MensajeEntity(
+                    id = UUID.randomUUID().toString(),
+                    remoteId = result.data?.mensajeId,
+                    usuarioId = usuarioId,
+                    nombreUsuario = usuarioLogueado?.nombre ?: "Usuario",
+                    asunto = asunto,
+                    contenido = contenido,
+                    respuesta = null,
+                    fechaCreacion = result.data?.fechaCreacion ?: LocalDateTime.now().toString(),
+                    leido = false,
+                    isPendingCreate = false,
+                    isPendingUpdate = false
                 )
-                mensajeDao.insertMensaje(updatedEntity)
-                Log.d(TAG, "Mensaje sincronizado con ID: ${response.mensajeId}")
-                response.toDomain()
-            } else {
-                SyncTrigger.triggerImmediateSync(context)
-                entityLocal.toDomain()
+                localDataSource.insertMensaje(entity)
+                Resource.Success(entity.toDomain())
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error de conexión: ${e.message}")
-            SyncTrigger.triggerImmediateSync(context)
-            entityLocal.toDomain()
+            is Resource.Error -> createMensajeLocal(asunto, contenido)
+            is Resource.Loading -> Resource.Loading()
         }
     }
 
-    override suspend fun responderMensaje(mensajeId: Int, respuesta: String) {
-        mensajeDao.updateRespuestaLocal(mensajeId, respuesta)
-        Log.d(TAG, "Respuesta guardada localmente para mensaje $mensajeId")
+    override suspend fun responderMensaje(mensajeId: String, respuesta: String): Resource<Unit> {
+        localDataSource.updateRespuestaLocal(mensajeId, respuesta)
 
-        try {
-            val success = remoteDataSource.responderMensaje(mensajeId, respuesta)
-            if (success) {
-                mensajeDao.markRespuestaAsSynced(mensajeId)
-                Log.d(TAG, "Respuesta sincronizada")
-            } else {
-                SyncTrigger.triggerImmediateSync(context)
+        val mensaje = localDataSource.getById(mensajeId)
+        val remoteId = mensaje?.remoteId
+
+        return if (remoteId != null) {
+            when (val result = remoteDataSource.responderMensaje(remoteId, respuesta)) {
+                is Resource.Success -> {
+                    localDataSource.markAsUpdated(mensajeId)
+                    Resource.Success(Unit)
+                }
+                else -> Resource.Success(Unit)
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error de conexión: ${e.message}")
-            SyncTrigger.triggerImmediateSync(context)
+        } else {
+            Resource.Success(Unit)
         }
     }
 
-    override suspend fun getMensajesByUsuario(usuarioId: Int): List<Mensaje> {
-        try {
-            val remotos = remoteDataSource.getMensajesByUsuario(usuarioId)
-            if (remotos != null && remotos.isNotEmpty()) {
-                mensajeDao.insertMensajes(remotos.toEntityList())
+    override suspend fun postPendingMensajes(): Resource<Unit> {
+        val pendingCreate = localDataSource.getPendingCreate()
+        for (mensaje in pendingCreate) {
+            when (val result = remoteDataSource.sendMensaje(
+                usuarioId = mensaje.usuarioId,
+                asunto = mensaje.asunto,
+                contenido = mensaje.contenido
+            )) {
+                is Resource.Success -> result.data?.mensajeId?.let {
+                    localDataSource.markAsCreated(mensaje.id, it)
+                }
+                else -> Unit
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error: ${e.message}")
         }
-        return mensajeDao.getMensajesByUsuario(usuarioId).toDomainList()
+
+        val pendingUpdate = localDataSource.getPendingUpdate()
+        for (mensaje in pendingUpdate) {
+            val remoteId = mensaje.remoteId ?: continue
+            when (remoteDataSource.responderMensaje(remoteId, mensaje.respuesta ?: "")) {
+                is Resource.Success -> localDataSource.markAsUpdated(mensaje.id)
+                else -> Unit
+            }
+        }
+
+        return Resource.Success(Unit)
     }
 }

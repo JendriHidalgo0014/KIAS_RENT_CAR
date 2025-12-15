@@ -9,12 +9,12 @@ import edu.ucne.kias_rent_car.data.local.dao.ReservationConfigDao
 import edu.ucne.kias_rent_car.data.local.dao.UbicacionDao
 import edu.ucne.kias_rent_car.data.local.dao.UsuarioDao
 import edu.ucne.kias_rent_car.data.local.dao.VehicleDao
+import edu.ucne.kias_rent_car.data.local.entities.MensajeEntity
+import edu.ucne.kias_rent_car.data.local.entities.ReservacionEntity
+import edu.ucne.kias_rent_car.data.local.entities.ReservationConfigEntity
 import edu.ucne.kias_rent_car.data.local.entities.UbicacionEntity
 import edu.ucne.kias_rent_car.data.local.entities.UsuarioEntity
-import edu.ucne.kias_rent_car.data.local.entity.MensajeEntity
-import edu.ucne.kias_rent_car.data.local.entity.ReservacionEntity
-import edu.ucne.kias_rent_car.data.local.entity.ReservationConfigEntity
-import edu.ucne.kias_rent_car.data.local.entity.VehicleEntity
+import edu.ucne.kias_rent_car.data.local.entities.VehicleEntity
 
 @Database(
     entities = [

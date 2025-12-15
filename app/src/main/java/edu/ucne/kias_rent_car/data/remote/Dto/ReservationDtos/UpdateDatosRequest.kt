@@ -1,4 +1,4 @@
-package edu.ucne.kias_rent_car.data.remote.Dto.ReservationDtos
+package edu.ucne.kias_rent_car.data.remote.dto
 
 data class UpdateDatosRequest(
     val ubicacionRecogidaId: Int,

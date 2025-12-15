@@ -1,35 +1,14 @@
-package edu.ucne.kias_rent_car.data.remote.Dto.VehicleDtos
-
-import com.squareup.moshi.Json
+package edu.ucne.kias_rent_car.data.remote.dto
 
 data class VehiculoDto(
-    @Json(name = "vehiculoId")
     val vehiculoId: Int,
-
-    @Json(name = "modelo")
     val modelo: String,
-
-    @Json(name = "descripcion")
-    val descripcion: String?,
-
-    @Json(name = "categoria")
-    val categoria: String,
-
-    @Json(name = "asientos")
-    val asientos: Int,
-
-    @Json(name = "transmision")
-    val transmision: String,
-
-    @Json(name = "precioPorDia")
+    val descripcion: String? = null,
+    val categoria: String? = null,
+    val asientos: Int? = null,
+    val transmision: String? = null,
     val precioPorDia: Double,
-
-    @Json(name = "imagenUrl")
-    val imagenUrl: String?,
-
-    @Json(name = "disponible")
-    val disponible: Boolean,
-
-    @Json(name = "fechaIngreso")
-    val fechaIngreso: String?
+    val imagenUrl: String? = null,
+    val disponible: Boolean? = true,
+    val fechaIngreso: String? = null
 )

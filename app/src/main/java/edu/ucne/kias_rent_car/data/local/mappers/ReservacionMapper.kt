@@ -1,147 +1,120 @@
 package edu.ucne.kias_rent_car.data.mappers
 
-import edu.ucne.kias_rent_car.data.local.entity.ReservacionEntity
-import edu.ucne.kias_rent_car.data.remote.Dto.ReservationDtos.ReservacionDto
-import edu.ucne.kias_rent_car.domain.model.*
+
+import edu.ucne.kias_rent_car.data.local.entities.ReservacionEntity
+import edu.ucne.kias_rent_car.data.remote.dto.ReservacionDto
+import edu.ucne.kias_rent_car.domain.model.Reservacion
+import java.util.UUID
 
 object ReservacionMapper {
 
-    fun ReservacionDto.toEntity(): ReservacionEntity {
-        return ReservacionEntity(
-            reservacionId = reservacionId,
-            usuarioId = usuarioId,
-            vehiculoId = vehiculoId,
-            fechaRecogida = fechaRecogida,
-            horaRecogida = horaRecogida,
-            fechaDevolucion = fechaDevolucion,
-            horaDevolucion = horaDevolucion,
-            ubicacionRecogidaId = ubicacionRecogidaId,
-            ubicacionDevolucionId = ubicacionDevolucionId,
-            estado = estado,
-            subtotal = subtotal,
-            impuestos = impuestos,
-            total = total,
-            codigoReserva = codigoReserva,
-            fechaCreacion = fechaCreacion ?: "",
-            // Datos del vehículo para offline
-            vehiculoModelo = vehiculo?.modelo ?: "",
-            vehiculoImagenUrl = vehiculo?.imagenUrl ?: "",
-            vehiculoPrecioPorDia = vehiculo?.precioPorDia ?: 0.0,
-            // Datos de ubicación para offline
-            ubicacionRecogidaNombre = ubicacionRecogida?.nombre ?: "",
-            ubicacionDevolucionNombre = ubicacionDevolucion?.nombre ?: "",
-            // Sync flags
-            isPendingCreate = false,
-            isPendingUpdate = false,
-            isPendingEstadoUpdate = false
-        )
-    }
+    fun ReservacionEntity.toDomain(): Reservacion = Reservacion(
+        id = id,
+        remoteId = remoteId,
+        usuarioId = usuarioId,
+        vehiculoId = vehiculoId,
+        fechaRecogida = fechaRecogida,
+        horaRecogida = horaRecogida,
+        fechaDevolucion = fechaDevolucion,
+        horaDevolucion = horaDevolucion,
+        ubicacionRecogidaId = ubicacionRecogidaId,
+        ubicacionDevolucionId = ubicacionDevolucionId,
+        estado = estado,
+        subtotal = subtotal,
+        impuestos = impuestos,
+        total = total,
+        codigoReserva = codigoReserva,
+        fechaCreacion = fechaCreacion,
+        usuario = null,
+        vehiculo = null,
+        ubicacionRecogida = null,
+        ubicacionDevolucion = null,
+        isPendingCreate = isPendingCreate,
+        isPendingUpdate = isPendingUpdate,
+        isPendingDelete = isPendingDelete
+    )
 
-    fun ReservacionEntity.toDomain(): Reservacion {
-        return Reservacion(
-            reservacionId = reservacionId,
-            usuarioId = usuarioId,
-            vehiculoId = vehiculoId,
-            fechaRecogida = fechaRecogida,
-            horaRecogida = horaRecogida,
-            fechaDevolucion = fechaDevolucion,
-            horaDevolucion = horaDevolucion,
-            ubicacionRecogidaId = ubicacionRecogidaId,
-            ubicacionDevolucionId = ubicacionDevolucionId,
-            estado = estado,
-            subtotal = subtotal,
-            impuestos = impuestos,
-            total = total,
-            codigoReserva = codigoReserva,
-            fechaCreacion = fechaCreacion,
-            vehiculo = if (vehiculoModelo.isNotBlank()) {
-                Vehicle(
-                    id = vehiculoId.toString(),
-                    remoteId = vehiculoId,
-                    modelo = vehiculoModelo,
-                    descripcion = "",
-                    categoria = VehicleCategory.SUV,
-                    asientos = 5,
-                    transmision = TransmisionType.AUTOMATIC,
-                    precioPorDia = vehiculoPrecioPorDia,
-                    imagenUrl = vehiculoImagenUrl,
-                    disponible = true
-                )
-            } else null,
-            ubicacionRecogida = if (ubicacionRecogidaNombre.isNotBlank()) {
-                Ubicacion(
-                    ubicacionId = ubicacionRecogidaId,
-                    nombre = ubicacionRecogidaNombre,
-                    direccion = null
-                )
-            } else null,
-            ubicacionDevolucion = if (ubicacionDevolucionNombre.isNotBlank()) {
-                Ubicacion(
-                    ubicacionId = ubicacionDevolucionId,
-                    nombre = ubicacionDevolucionNombre,
-                    direccion = null
-                )
-            } else null
-        )
-    }
+    fun Reservacion.toEntity(): ReservacionEntity = ReservacionEntity(
+        id = id,
+        remoteId = remoteId,
+        usuarioId = usuarioId,
+        vehiculoId = vehiculoId,
+        fechaRecogida = fechaRecogida,
+        horaRecogida = horaRecogida,
+        fechaDevolucion = fechaDevolucion,
+        horaDevolucion = horaDevolucion,
+        ubicacionRecogidaId = ubicacionRecogidaId,
+        ubicacionDevolucionId = ubicacionDevolucionId,
+        estado = estado,
+        subtotal = subtotal,
+        impuestos = impuestos,
+        total = total,
+        codigoReserva = codigoReserva,
+        fechaCreacion = fechaCreacion,
+        isPendingCreate = isPendingCreate,
+        isPendingUpdate = isPendingUpdate,
+        isPendingDelete = isPendingDelete,
+        vehiculoModelo = vehiculo?.modelo ?: "",
+        vehiculoImagenUrl = vehiculo?.imagenUrl ?: "",
+        vehiculoPrecioPorDia = vehiculo?.precioPorDia ?: 0.0,
+        ubicacionRecogidaNombre = ubicacionRecogida?.nombre ?: "",
+        ubicacionDevolucionNombre = ubicacionDevolucion?.nombre ?: ""
+    )
 
-    fun ReservacionDto.toDomain(): Reservacion {
-        return Reservacion(
-            reservacionId = reservacionId,
-            usuarioId = usuarioId,
-            vehiculoId = vehiculoId,
-            fechaRecogida = fechaRecogida,
-            horaRecogida = horaRecogida,
-            fechaDevolucion = fechaDevolucion,
-            horaDevolucion = horaDevolucion,
-            ubicacionRecogidaId = ubicacionRecogidaId,
-            ubicacionDevolucionId = ubicacionDevolucionId,
-            estado = estado,
-            subtotal = subtotal,
-            impuestos = impuestos,
-            total = total,
-            codigoReserva = codigoReserva,
-            fechaCreacion = fechaCreacion ?: "",
-            usuario = usuario?.let {
-                Usuario(
-                    id = it.usuarioId,
-                    nombre = it.nombre,
-                    email = it.email,
-                    telefono = null,
-                    rol = "Cliente"
-                )
-            },
-            vehiculo = vehiculo?.let {
-                Vehicle(
-                    id = it.vehiculoId.toString(),
-                    remoteId = it.vehiculoId,
-                    modelo = it.modelo,
-                    descripcion = "",
-                    categoria = VehicleCategory.SUV,
-                    asientos = 5,
-                    transmision = TransmisionType.AUTOMATIC,
-                    precioPorDia = it.precioPorDia ?: 0.0,
-                    imagenUrl = it.imagenUrl ?: "",
-                    disponible = true
-                )
-            },
-            ubicacionRecogida = ubicacionRecogida?.let {
-                Ubicacion(
-                    ubicacionId = it.ubicacionId,
-                    nombre = it.nombre,
-                    direccion = null
-                )
-            },
-            ubicacionDevolucion = ubicacionDevolucion?.let {
-                Ubicacion(
-                    ubicacionId = it.ubicacionId,
-                    nombre = it.nombre,
-                    direccion = null
-                )
-            }
-        )
-    }
+    fun ReservacionDto.toDomain(): Reservacion = Reservacion(
+        id = UUID.randomUUID().toString(),
+        remoteId = reservacionId,
+        usuarioId = usuarioId,
+        vehiculoId = vehiculoId,
+        fechaRecogida = fechaRecogida ?: "",
+        horaRecogida = horaRecogida ?: "10:00",
+        fechaDevolucion = fechaDevolucion ?: "",
+        horaDevolucion = horaDevolucion ?: "10:00",
+        ubicacionRecogidaId = ubicacionRecogidaId ?: 1,
+        ubicacionDevolucionId = ubicacionDevolucionId ?: 1,
+        estado = estado ?: "Pendiente",
+        subtotal = subtotal ?: 0.0,
+        impuestos = impuestos ?: 0.0,
+        total = total ?: 0.0,
+        codigoReserva = codigoReserva ?: "",
+        fechaCreacion = fechaCreacion ?: "",
+        usuario = null,
+        vehiculo = null,
+        ubicacionRecogida = null,
+        ubicacionDevolucion = null,
+        isPendingCreate = false,
+        isPendingUpdate = false,
+        isPendingDelete = false
+    )
 
-    fun List<ReservacionDto>.toEntityList() = map { it.toEntity() }
-    fun List<ReservacionEntity>.toDomainList() = map { it.toDomain() }
+    fun ReservacionDto.toEntity(): ReservacionEntity = ReservacionEntity(
+        id = UUID.randomUUID().toString(),
+        remoteId = reservacionId,
+        usuarioId = usuarioId,
+        vehiculoId = vehiculoId,
+        fechaRecogida = fechaRecogida ?: "",
+        horaRecogida = horaRecogida ?: "10:00",
+        fechaDevolucion = fechaDevolucion ?: "",
+        horaDevolucion = horaDevolucion ?: "10:00",
+        ubicacionRecogidaId = ubicacionRecogidaId ?: 1,
+        ubicacionDevolucionId = ubicacionDevolucionId ?: 1,
+        estado = estado ?: "Pendiente",
+        subtotal = subtotal ?: 0.0,
+        impuestos = impuestos ?: 0.0,
+        total = total ?: 0.0,
+        codigoReserva = codigoReserva ?: "",
+        fechaCreacion = fechaCreacion ?: "",
+        isPendingCreate = false,
+        isPendingUpdate = false,
+        isPendingDelete = false,
+        vehiculoModelo = vehiculo?.modelo ?: "",
+        vehiculoImagenUrl = vehiculo?.imagenUrl ?: "",
+        vehiculoPrecioPorDia = vehiculo?.precioPorDia ?: 0.0,
+        ubicacionRecogidaNombre = ubicacionRecogida?.nombre ?: "",
+        ubicacionDevolucionNombre = ubicacionDevolucion?.nombre ?: ""
+    )
+
+    fun List<ReservacionEntity>.toDomainList(): List<Reservacion> = map { it.toDomain() }
+    fun List<ReservacionDto>.toEntityList(): List<ReservacionEntity> = map { it.toEntity() }
+    fun List<ReservacionDto>.toDomainList(): List<Reservacion> = map { it.toDomain() }
 }
