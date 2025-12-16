@@ -12,41 +12,45 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+data class KiaTextFieldConfig(
+    val placeholder: String? = null,
+    val enabled: Boolean = true,
+    val readOnly: Boolean = false,
+    val singleLine: Boolean = true,
+    val minHeight: Dp? = null,
+    val keyboardType: KeyboardType = KeyboardType.Text,
+    val visualTransformation: VisualTransformation = VisualTransformation.None,
+    val isError: Boolean = false,
+    val supportingText: String? = null
+)
+
 @Composable
 fun KiaTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
-    placeholder: String? = null,
-    enabled: Boolean = true,
-    readOnly: Boolean = false,
-    singleLine: Boolean = true,
-    minHeight: Dp? = null,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    visualTransformation: VisualTransformation = VisualTransformation.None,
+    config: KiaTextFieldConfig = KiaTextFieldConfig(),
     trailingIcon: @Composable (() -> Unit)? = null,
-    leadingIcon: @Composable (() -> Unit)? = null,
-    isError: Boolean = false,
-    supportingText: String? = null
+    leadingIcon: @Composable (() -> Unit)? = null
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
-        placeholder = placeholder?.let { { Text(it, color = MaterialTheme.colorScheme.outline) } },
+        placeholder = config.placeholder?.let { { Text(it, color = MaterialTheme.colorScheme.outline) } },
         modifier = modifier
             .fillMaxWidth()
-            .then(if (minHeight != null) Modifier.heightIn(min = minHeight) else Modifier),
-        enabled = enabled,
-        readOnly = readOnly,
-        singleLine = singleLine,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        visualTransformation = visualTransformation,
+            .then(if (config.minHeight != null) Modifier.heightIn(min = config.minHeight) else Modifier),
+        enabled = config.enabled,
+        readOnly = config.readOnly,
+        singleLine = config.singleLine,
+        keyboardOptions = KeyboardOptions(keyboardType = config.keyboardType),
+        visualTransformation = config.visualTransformation,
         trailingIcon = trailingIcon,
         leadingIcon = leadingIcon,
-        isError = isError,
-        supportingText = supportingText?.let { { Text(it) } },
+        isError = config.isError,
+        supportingText = config.supportingText?.let { { Text(it) } },
         colors = kiaTextFieldColors(),
         shape = RoundedCornerShape(12.dp)
     )

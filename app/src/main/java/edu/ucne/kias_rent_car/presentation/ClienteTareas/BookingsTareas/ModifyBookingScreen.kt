@@ -12,10 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import edu.ucne.kias_rent_car.domain.model.Ubicacion
 import edu.ucne.kias_rent_car.presentation.Components.*
-import java.time.LocalDate
-import java.time.LocalTime
 
 @Composable
 fun ModifyBookingScreen(
