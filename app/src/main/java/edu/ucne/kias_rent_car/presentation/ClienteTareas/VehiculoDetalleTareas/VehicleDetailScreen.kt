@@ -90,7 +90,7 @@ fun VehicleDetailBody(
             state.error != null -> {
                 Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(state.error ?: "Error desconocido", color = MaterialTheme.colorScheme.onSurface)
+                        Text(state.error, color = MaterialTheme.colorScheme.onSurface)
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
                             onClick = { onEvent(VehicleDetailUiEvent.NavigateBack) },
@@ -100,7 +100,7 @@ fun VehicleDetailBody(
                 }
             }
             state.vehicle != null -> {
-                VehicleDetailContent(vehicle = state.vehicle!!, paddingValues = padding)
+                VehicleDetailContent(vehicle = state.vehicle, paddingValues = padding)
             }
         }
     }

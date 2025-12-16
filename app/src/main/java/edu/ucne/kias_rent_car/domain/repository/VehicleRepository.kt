@@ -3,6 +3,7 @@ package edu.ucne.kias_rent_car.domain.repository
 import edu.ucne.kias_rent_car.data.remote.Resource
 import edu.ucne.kias_rent_car.domain.model.Vehicle
 import edu.ucne.kias_rent_car.domain.model.VehicleCategory
+import edu.ucne.kias_rent_car.domain.model.VehicleParams
 import kotlinx.coroutines.flow.Flow
 
 interface VehicleRepository {
@@ -11,24 +12,7 @@ interface VehicleRepository {
     fun searchVehicles(query: String): Flow<List<Vehicle>>
     suspend fun getVehicle(id: String): Resource<Vehicle>
     suspend fun refreshVehicles(): Resource<Unit>
-    suspend fun createVehicle(
-        modelo: String,
-        descripcion: String,
-        categoria: String,
-        asientos: Int,
-        transmision: String,
-        precioPorDia: Double,
-        imagenUrl: String
-    ): Resource<Vehicle>
-    suspend fun updateVehicle(
-        id: String,
-        modelo: String,
-        descripcion: String,
-        categoria: String,
-        asientos: Int,
-        transmision: String,
-        precioPorDia: Double,
-        imagenUrl: String
-    ): Resource<Unit>
+    suspend fun createVehicle(params: VehicleParams): Resource<Vehicle>
+    suspend fun updateVehicle(params: VehicleParams): Resource<Unit>
     suspend fun deleteVehicle(id: String): Resource<Unit>
 }

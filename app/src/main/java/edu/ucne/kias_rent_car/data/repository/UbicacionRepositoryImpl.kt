@@ -21,7 +21,7 @@ class UbicacionRepositoryImpl @Inject constructor(
         return try {
             when (val result = remoteDataSource.getUbicaciones()) {
                 is Resource.Success -> {
-                    result.data?.toEntityList()?.let { localDataSource.insertUbicaciones(it) }
+                    localDataSource.insertUbicaciones(result.data.toEntityList())
                     localDataSource.getUbicaciones().toDomainList()
                 }
                 else -> localDataSource.getUbicaciones().toDomainList()
@@ -49,7 +49,7 @@ class UbicacionRepositoryImpl @Inject constructor(
             }
 
             return when (val result = remoteDataSource.getUbicacionById(remoteId)) {
-                is Resource.Success -> result.data?.toDomain()
+                is Resource.Success -> result.data.toDomain()
                 else -> null
             }
         }
@@ -60,7 +60,7 @@ class UbicacionRepositoryImpl @Inject constructor(
         when (val result = remoteDataSource.getUbicaciones()) {
             is Resource.Success -> {
                 localDataSource.deleteAll()
-                result.data?.toEntityList()?.let { localDataSource.insertUbicaciones(it) }
+                localDataSource.insertUbicaciones(result.data.toEntityList())
             }
             else -> Unit
         }

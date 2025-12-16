@@ -80,8 +80,8 @@ fun SupportBody(
                     when (route) {
                         "home" -> onEvent(SupportUiEvent.NavigateToHome)
                         "bookings" -> onEvent(SupportUiEvent.NavigateToBookings)
-                        "support" -> { }
                         "profile" -> onEvent(SupportUiEvent.NavigateToProfile)
+                        else -> Unit
                     }
                 }
             )

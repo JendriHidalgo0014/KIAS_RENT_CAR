@@ -3,6 +3,7 @@ package edu.ucne.kias_rent_car.presentation.ClienteTareas.VehiculoDetalleTareas
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import edu.ucne.kias_rent_car.data.remote.Resource
 import edu.ucne.kias_rent_car.domain.usecase.Vehicle.GetVehicleDetailUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,6 @@ import javax.inject.Inject
 class VehicleDetailViewModel @Inject constructor(
     private val getVehicleDetailUseCase: GetVehicleDetailUseCase
 ) : ViewModel() {
-
     private val _state = MutableStateFlow(VehicleDetailUiState())
     val state: StateFlow<VehicleDetailUiState> = _state.asStateFlow()
 
@@ -30,15 +30,14 @@ class VehicleDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
-            try {
-                val vehicle = getVehicleDetailUseCase(vehicleId)
-                if (vehicle != null) {
-                    _state.update { it.copy(vehicle = vehicle, isLoading = false) }
-                } else {
-                    _state.update { it.copy(isLoading = false, error = "Vehículo no encontrado") }
+            when (val result = getVehicleDetailUseCase(vehicleId)) {
+                is Resource.Success -> {
+                    _state.update { it.copy(vehicle = result.data, isLoading = false) }
                 }
-            } catch (_: Exception) {
-                _state.update { it.copy(isLoading = false, error = "Error al cargar el vehículo") }
+                is Resource.Error -> {
+                    _state.update { it.copy(isLoading = false, error = result.message) }
+                }
+                is Resource.Loading -> Unit
             }
         }
     }

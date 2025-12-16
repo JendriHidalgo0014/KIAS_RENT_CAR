@@ -4,6 +4,7 @@ import edu.ucne.kias_rent_car.data.remote.ApiService
 import edu.ucne.kias_rent_car.data.remote.Resource
 import edu.ucne.kias_rent_car.data.remote.dto.VehiculoDto
 import edu.ucne.kias_rent_car.data.remote.dto.VehiculoRequest
+import edu.ucne.kias_rent_car.domain.model.VehicleParams
 import javax.inject.Inject
 
 class VehiculoRemoteDataSource @Inject constructor(
@@ -55,24 +56,16 @@ class VehiculoRemoteDataSource @Inject constructor(
         }
     }
 
-    suspend fun createVehiculo(
-        modelo: String,
-        descripcion: String,
-        categoria: String,
-        asientos: Int,
-        transmision: String,
-        precioPorDia: Double,
-        imagenUrl: String
-    ): Resource<VehiculoDto> {
+    suspend fun createVehiculo(params: VehicleParams): Resource<VehiculoDto> {
         return try {
             val request = VehiculoRequest(
-                modelo = modelo,
-                descripcion = descripcion,
-                categoria = categoria,
-                asientos = asientos,
-                transmision = transmision,
-                precioPorDia = precioPorDia,
-                imagenUrl = imagenUrl
+                modelo = params.modelo,
+                descripcion = params.descripcion,
+                categoria = params.categoria,
+                asientos = params.asientos,
+                transmision = params.transmision,
+                precioPorDia = params.precioPorDia,
+                imagenUrl = params.imagenUrl
             )
             val response = api.createVehiculo(request)
             if (response.isSuccessful) {
@@ -86,25 +79,16 @@ class VehiculoRemoteDataSource @Inject constructor(
         }
     }
 
-    suspend fun updateVehiculo(
-        id: Int,
-        modelo: String,
-        descripcion: String,
-        categoria: String,
-        asientos: Int,
-        transmision: String,
-        precioPorDia: Double,
-        imagenUrl: String
-    ): Resource<Unit> {
+    suspend fun updateVehiculo(id: Int, params: VehicleParams): Resource<Unit> {
         return try {
             val request = VehiculoRequest(
-                modelo = modelo,
-                descripcion = descripcion,
-                categoria = categoria,
-                asientos = asientos,
-                transmision = transmision,
-                precioPorDia = precioPorDia,
-                imagenUrl = imagenUrl
+                modelo = params.modelo,
+                descripcion = params.descripcion,
+                categoria = params.categoria,
+                asientos = params.asientos,
+                transmision = params.transmision,
+                precioPorDia = params.precioPorDia,
+                imagenUrl = params.imagenUrl
             )
             val response = api.updateVehiculo(id, request)
             if (response.isSuccessful) {

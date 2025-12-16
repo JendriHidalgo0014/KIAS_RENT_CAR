@@ -9,6 +9,7 @@ import edu.ucne.kias_rent_car.data.remote.Resource
 import edu.ucne.kias_rent_car.data.remote.datasource.VehiculoRemoteDataSource
 import edu.ucne.kias_rent_car.domain.model.Vehicle
 import edu.ucne.kias_rent_car.domain.model.VehicleCategory
+import edu.ucne.kias_rent_car.domain.model.VehicleParams
 import edu.ucne.kias_rent_car.domain.repository.VehicleRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -18,7 +19,9 @@ class VehicleRepositoryImpl @Inject constructor(
     private val localDataSource: VehicleDao,
     private val remoteDataSource: VehiculoRemoteDataSource
 ) : VehicleRepository {
-    private val errorInvalidId = "ID inválido"
+    private val errorIdInvalido = "ID inválido"
+    private val errorIdRequerido = "ID requerido para actualizar"
+
     override fun observeAvailableVehicles(): Flow<List<Vehicle>> {
         return localDataSource.observeAllVehicles().map { it.toDomainList() }
     }
@@ -51,10 +54,10 @@ class VehicleRepositoryImpl @Inject constructor(
             return when (val result = remoteDataSource.getVehiculoById(remoteId)) {
                 is Resource.Success -> Resource.Success(result.data.toDomain())
                 is Resource.Error -> Resource.Error(result.message)
-                is Resource.Loading -> Resource.Loading()
+                is Resource.Loading -> Resource.Loading
             }
         }
-        return Resource.Error(errorInvalidId)
+        return Resource.Error(errorIdInvalido)
     }
 
     override suspend fun refreshVehicles(): Resource<Unit> {
@@ -65,57 +68,37 @@ class VehicleRepositoryImpl @Inject constructor(
                 Resource.Success(Unit)
             }
             is Resource.Error -> Resource.Error(result.message)
-            is Resource.Loading -> Resource.Loading()
+            is Resource.Loading -> Resource.Loading
         }
     }
 
-    override suspend fun createVehicle(
-        modelo: String,
-        descripcion: String,
-        categoria: String,
-        asientos: Int,
-        transmision: String,
-        precioPorDia: Double,
-        imagenUrl: String
-    ): Resource<Vehicle> {
-        return when (val result = remoteDataSource.createVehiculo(
-            modelo, descripcion, categoria, asientos, transmision, precioPorDia, imagenUrl
-        )) {
+    override suspend fun createVehicle(params: VehicleParams): Resource<Vehicle> {
+        return when (val result = remoteDataSource.createVehiculo(params)) {
             is Resource.Success -> {
                 localDataSource.insertVehicle(result.data.toEntity())
                 Resource.Success(result.data.toDomain())
             }
             is Resource.Error -> Resource.Error(result.message)
-            is Resource.Loading -> Resource.Loading()
+            is Resource.Loading -> Resource.Loading
         }
     }
 
-    override suspend fun updateVehicle(
-        id: String,
-        modelo: String,
-        descripcion: String,
-        categoria: String,
-        asientos: Int,
-        transmision: String,
-        precioPorDia: Double,
-        imagenUrl: String
-    ): Resource<Unit> {
-        val remoteId = getRemoteIdOrNull(id) ?: return Resource.Error(errorInvalidId)
+    override suspend fun updateVehicle(params: VehicleParams): Resource<Unit> {
+        val id = params.id ?: return Resource.Error(errorIdRequerido)
+        val remoteId = getRemoteIdOrNull(id) ?: return Resource.Error(errorIdInvalido)
 
-        return when (val result = remoteDataSource.updateVehiculo(
-            remoteId, modelo, descripcion, categoria, asientos, transmision, precioPorDia, imagenUrl
-        )) {
+        return when (val result = remoteDataSource.updateVehiculo(remoteId, params)) {
             is Resource.Success -> {
                 refreshVehicles()
                 Resource.Success(Unit)
             }
             is Resource.Error -> Resource.Error(result.message)
-            is Resource.Loading -> Resource.Loading()
+            is Resource.Loading -> Resource.Loading
         }
     }
 
     override suspend fun deleteVehicle(id: String): Resource<Unit> {
-        val remoteId = getRemoteIdOrNull(id) ?: return Resource.Error(errorInvalidId)
+        val remoteId = getRemoteIdOrNull(id) ?: return Resource.Error(errorIdInvalido)
 
         return when (val result = remoteDataSource.deleteVehiculo(remoteId)) {
             is Resource.Success -> {
@@ -123,7 +106,7 @@ class VehicleRepositoryImpl @Inject constructor(
                 Resource.Success(Unit)
             }
             is Resource.Error -> Resource.Error(result.message)
-            is Resource.Loading -> Resource.Loading()
+            is Resource.Loading -> Resource.Loading
         }
     }
     private suspend fun getRemoteIdOrNull(id: String): Int? {
