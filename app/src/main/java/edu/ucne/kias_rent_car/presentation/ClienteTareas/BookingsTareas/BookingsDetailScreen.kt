@@ -1,36 +1,25 @@
 package edu.ucne.kias_rent_car.presentation.ClienteTareas.BookingsTareas
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.SubcomposeAsyncImage
-import coil.request.ImageRequest
 import edu.ucne.kias_rent_car.domain.model.BookingDetailNavigation
 import edu.ucne.kias_rent_car.domain.model.EstadoReserva
-import edu.ucne.kias_rent_car.presentation.Components.KiaBottomNavigation
-import edu.ucne.kias_rent_car.presentation.Components.KiaLoadingBox
-import edu.ucne.kias_rent_car.presentation.Components.KiaScaffold
+import edu.ucne.kias_rent_car.presentation.Components.*
 import edu.ucne.kias_rent_car.ui.theme.onErrorDark
-import edu.ucne.kias_rent_car.ui.theme.scrimLight
 
 @Composable
 fun BookingDetailScreen(
@@ -107,7 +96,10 @@ private fun BookingDetailContent(
             .padding(padding)
             .verticalScroll(rememberScrollState())
     ) {
-        VehicleImageSection(state)
+        KiaVehicleImage(
+            imageUrl = state.reservacion?.vehiculo?.imagenUrl,
+            contentDescription = state.reservacion?.vehiculo?.modelo
+        )
 
         Column(modifier = Modifier.padding(horizontal = 20.dp)) {
             VehicleInfoSection(state)
@@ -116,46 +108,6 @@ private fun BookingDetailContent(
             ActionButtonsSection(state, bookingId, onEvent)
         }
     }
-}
-
-@Composable
-private fun VehicleImageSection(state: BookingDetailUiState) {
-    SubcomposeAsyncImage(
-        model = ImageRequest.Builder(LocalContext.current)
-            .data(state.reservacion?.vehiculo?.imagenUrl)
-            .crossfade(true)
-            .build(),
-        contentDescription = state.reservacion?.vehiculo?.modelo,
-        contentScale = ContentScale.Crop,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp),
-        loading = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = onErrorDark)
-            }
-        },
-        error = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.DirectionsCar,
-                    null,
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(60.dp)
-                )
-            }
-        }
-    )
 }
 
 @Composable
@@ -198,28 +150,28 @@ private fun getEstadoColor(estado: String?): Color {
 
 @Composable
 private fun ReservationDetailsSection(state: BookingDetailUiState) {
-    DetailRow(
+    KiaDetailRow(
         Icons.Default.CalendarMonth,
         "Recogida",
         "${state.reservacion?.fechaRecogida} - ${state.reservacion?.horaRecogida}"
     )
     Spacer(modifier = Modifier.height(12.dp))
 
-    DetailRow(
+    KiaDetailRow(
         Icons.Default.CalendarMonth,
         "Devolución",
         "${state.reservacion?.fechaDevolucion} - ${state.reservacion?.horaDevolucion}"
     )
     Spacer(modifier = Modifier.height(12.dp))
 
-    DetailRow(
+    KiaDetailRow(
         Icons.Default.LocationOn,
         "Lugar de Recogida",
         state.reservacion?.ubicacionRecogida?.nombre ?: ""
     )
     Spacer(modifier = Modifier.height(12.dp))
 
-    DetailRow(
+    KiaDetailRow(
         Icons.Default.LocationOn,
         "Lugar de Devolución",
         state.reservacion?.ubicacionDevolucion?.nombre ?: ""
@@ -239,30 +191,10 @@ private fun PriceBreakdownSection(state: BookingDetailUiState) {
 
     Spacer(modifier = Modifier.height(12.dp))
 
-    PriceDetailRow("Subtotal", "$${String.format("%.2f", state.reservacion?.subtotal ?: 0.0)}")
-    PriceDetailRow("Impuestos", "$${String.format("%.2f", state.reservacion?.impuestos ?: 0.0)}")
+    KiaPriceRow("Subtotal", "$${String.format("%.2f", state.reservacion?.subtotal ?: 0.0)}")
+    KiaPriceRow("Impuestos", "$${String.format("%.2f", state.reservacion?.impuestos ?: 0.0)}")
 
-    Spacer(modifier = Modifier.height(8.dp))
-    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-    Spacer(modifier = Modifier.height(8.dp))
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            "Total",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            "$${String.format("%.2f", state.reservacion?.total ?: 0.0)}",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = onErrorDark
-        )
-    }
+    KiaPriceTotalRow(total = state.reservacion?.total ?: 0.0)
 
     Spacer(modifier = Modifier.height(32.dp))
 }
@@ -298,35 +230,10 @@ private fun ActionButtonsSection(
     }
 }
 
-@Composable
-private fun DetailRow(icon: ImageVector, label: String, value: String) {
-    Row(verticalAlignment = Alignment.Top) {
-        Icon(icon, null, tint = onErrorDark, modifier = Modifier.size(20.dp))
-        Spacer(modifier = Modifier.width(12.dp))
-        Column {
-            Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
-            Text(value, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
-        }
-    }
-}
-
-@Composable
-private fun PriceDetailRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(label, fontSize = 14.sp, color = MaterialTheme.colorScheme.outline)
-        Text(value, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
-    }
-}
-
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun BookingDetailBodyPreview() {
     MaterialTheme {
-        BookingDetailBody(BookingDetailUiState(), "1", onEvent = { _ -> })
+        BookingDetailBody(BookingDetailUiState(), "1", onEvent = {})
     }
 }
