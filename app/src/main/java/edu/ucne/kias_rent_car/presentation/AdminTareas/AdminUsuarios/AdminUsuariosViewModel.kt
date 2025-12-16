@@ -3,6 +3,7 @@ package edu.ucne.kias_rent_car.presentation.AdminTareas.AdminUsuarios
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import edu.ucne.kias_rent_car.data.remote.Resource
 import edu.ucne.kias_rent_car.domain.model.Usuario
 import edu.ucne.kias_rent_car.domain.usecase.Usuario.DeleteUsuarioUseCase
 import edu.ucne.kias_rent_car.domain.usecase.Usuario.GetAllUsuariosUseCase
@@ -37,8 +38,16 @@ class AdminUsuariosViewModel @Inject constructor(
     private fun loadUsuarios() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-            todosLosUsuarios = getAllUsuariosUseCase()
-            _state.update { it.copy(usuarios = todosLosUsuarios, isLoading = false) }
+            when (val result = getAllUsuariosUseCase()) {
+                is Resource.Success -> {
+                    todosLosUsuarios = result.data
+                    _state.update { it.copy(usuarios = todosLosUsuarios, isLoading = false) }
+                }
+                is Resource.Error -> {
+                    _state.update { it.copy(error = result.message, isLoading = false) }
+                }
+                is Resource.Loading -> Unit
+            }
         }
     }
 
@@ -55,10 +64,13 @@ class AdminUsuariosViewModel @Inject constructor(
         _state.update { it.copy(usuarios = filtrados) }
     }
 
-    private fun deleteUsuario(id: Int) {
+    private fun deleteUsuario(id: String) {
         viewModelScope.launch {
-            deleteUsuarioUseCase(id)
-            loadUsuarios()
+            when (val result = deleteUsuarioUseCase(id)) {
+                is Resource.Success -> loadUsuarios()
+                is Resource.Error -> _state.update { it.copy(error = result.message) }
+                is Resource.Loading -> Unit
+            }
         }
     }
 }
