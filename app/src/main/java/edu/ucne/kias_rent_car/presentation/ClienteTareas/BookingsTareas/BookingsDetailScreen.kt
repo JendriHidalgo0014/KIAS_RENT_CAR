@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
+import edu.ucne.kias_rent_car.domain.model.BookingDetailNavigation
 import edu.ucne.kias_rent_car.domain.model.EstadoReserva
 import edu.ucne.kias_rent_car.presentation.Components.KiaBottomNavigation
 import edu.ucne.kias_rent_car.ui.theme.onErrorDark
@@ -31,13 +32,8 @@ import edu.ucne.kias_rent_car.ui.theme.scrimLight
 @Composable
 fun BookingDetailScreen(
     viewModel: BookingDetailViewModel = hiltViewModel(),
-    bookingId: Int,
-    onNavigateBack: () -> Unit,
-    onNavigateToModify: (Int) -> Unit,
-    onNavigateToHome: () -> Unit,
-    onNavigateToBookings: () -> Unit,
-    onNavigateToSupport: () -> Unit,
-    onNavigateToProfile: () -> Unit
+    bookingId: String,
+    navigation: BookingDetailNavigation
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -50,12 +46,12 @@ fun BookingDetailScreen(
         bookingId = bookingId,
         onEvent = { event ->
             when (event) {
-                BookingDetailUiEvent.NavigateBack -> onNavigateBack()
-                is BookingDetailUiEvent.NavigateToModify -> onNavigateToModify(event.bookingId)
-                BookingDetailUiEvent.NavigateToHome -> onNavigateToHome()
-                BookingDetailUiEvent.NavigateToBookings -> onNavigateToBookings()
-                BookingDetailUiEvent.NavigateToSupport -> onNavigateToSupport()
-                BookingDetailUiEvent.NavigateToProfile -> onNavigateToProfile()
+                BookingDetailUiEvent.NavigateBack -> navigation.onNavigateBack()
+                is BookingDetailUiEvent.NavigateToModify -> navigation.onNavigateToModify(event.bookingId)
+                BookingDetailUiEvent.NavigateToHome -> navigation.onNavigateToHome()
+                BookingDetailUiEvent.NavigateToBookings -> navigation.onNavigateToBookings()
+                BookingDetailUiEvent.NavigateToSupport -> navigation.onNavigateToSupport()
+                BookingDetailUiEvent.NavigateToProfile -> navigation.onNavigateToProfile()
                 else -> viewModel.onEvent(event)
             }
         }
@@ -66,7 +62,7 @@ fun BookingDetailScreen(
 @Composable
 fun BookingDetailBody(
     state: BookingDetailUiState,
-    bookingId: Int,
+    bookingId: String,
     onEvent: (BookingDetailUiEvent) -> Unit
 ) {
     Scaffold(
@@ -100,6 +96,7 @@ fun BookingDetailBody(
                         "bookings" -> onEvent(BookingDetailUiEvent.NavigateToBookings)
                         "support" -> onEvent(BookingDetailUiEvent.NavigateToSupport)
                         "profile" -> onEvent(BookingDetailUiEvent.NavigateToProfile)
+                        else -> Unit
                     }
                 }
             )
@@ -107,33 +104,63 @@ fun BookingDetailBody(
         containerColor = scrimLight
     ) { padding ->
         if (state.isLoading) {
-            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
                 CircularProgressIndicator(color = onErrorDark)
             }
         } else {
             Column(
-                modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
             ) {
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(state.reservacion?.vehiculo?.imagenUrl)
-                        .crossfade(true).build(),
+                        .crossfade(true)
+                        .build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
                     loading = {
-                        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
                             CircularProgressIndicator(color = onErrorDark)
                         }
                     },
                     error = {
-                        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.DirectionsCar, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(60.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.DirectionsCar,
+                                null,
+                                tint = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.size(60.dp)
+                            )
                         }
                     }
                 )
 
-                Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                ) {
                     Text(
                         text = state.reservacion?.vehiculo?.modelo ?: "",
                         fontSize = 24.sp,
@@ -142,11 +169,23 @@ fun BookingDetailBody(
                     )
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(state.reservacion?.vehiculo?.categoria?.displayName ?: "", fontSize = 14.sp, color = MaterialTheme.colorScheme.outline)
+                        Text(
+                            state.reservacion?.vehiculo?.categoria?.displayName ?: "",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.outline
+                        )
                         Text("•", color = MaterialTheme.colorScheme.outline)
-                        Text("${state.reservacion?.vehiculo?.asientos ?: 0} Asientos", fontSize = 14.sp, color = MaterialTheme.colorScheme.outline)
+                        Text(
+                            "${state.reservacion?.vehiculo?.asientos ?: 0} Asientos",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.outline
+                        )
                         Text("•", color = MaterialTheme.colorScheme.outline)
-                        Text(state.reservacion?.vehiculo?.transmision?.displayName ?: "", fontSize = 14.sp, color = MaterialTheme.colorScheme.outline)
+                        Text(
+                            state.reservacion?.vehiculo?.transmision?.displayName ?: "",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.outline
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -158,21 +197,47 @@ fun BookingDetailBody(
                         else -> MaterialTheme.colorScheme.outline
                     }
 
-                    Text(state.reservacion?.estado ?: "", fontSize = 14.sp, color = estadoColor, fontWeight = FontWeight.Bold)
+                    Text(
+                        state.reservacion?.estado ?: "",
+                        fontSize = 14.sp,
+                        color = estadoColor,
+                        fontWeight = FontWeight.Bold
+                    )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    DetailRow(Icons.Default.CalendarMonth, "Recogida", "${state.reservacion?.fechaRecogida} - ${state.reservacion?.horaRecogida}")
+                    DetailRow(
+                        Icons.Default.CalendarMonth,
+                        "Recogida",
+                        "${state.reservacion?.fechaRecogida} - ${state.reservacion?.horaRecogida}"
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
-                    DetailRow(Icons.Default.CalendarMonth, "Devolución", "${state.reservacion?.fechaDevolucion} - ${state.reservacion?.horaDevolucion}")
+                    DetailRow(
+                        Icons.Default.CalendarMonth,
+                        "Devolución",
+                        "${state.reservacion?.fechaDevolucion} - ${state.reservacion?.horaDevolucion}"
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
-                    DetailRow(Icons.Default.LocationOn, "Lugar de Recogida", state.reservacion?.ubicacionRecogida?.nombre ?: "")
+                    DetailRow(
+                        Icons.Default.LocationOn,
+                        "Lugar de Recogida",
+                        state.reservacion?.ubicacionRecogida?.nombre ?: ""
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
-                    DetailRow(Icons.Default.LocationOn, "Lugar de Devolución", state.reservacion?.ubicacionDevolucion?.nombre ?: "")
+                    DetailRow(
+                        Icons.Default.LocationOn,
+                        "Lugar de Devolución",
+                        state.reservacion?.ubicacionDevolucion?.nombre ?: ""
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    Text("Desglose de Precio", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text(
+                        "Desglose de Precio",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
 
                     Spacer(modifier = Modifier.height(12.dp))
 
@@ -183,9 +248,22 @@ fun BookingDetailBody(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Total", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                        Text("$${String.format("%.2f", state.reservacion?.total ?: 0.0)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = onErrorDark)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            "Total",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "$${String.format("%.2f", state.reservacion?.total ?: 0.0)}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = onErrorDark
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
@@ -193,7 +271,9 @@ fun BookingDetailBody(
                     if (state.reservacion?.estado in listOf(EstadoReserva.CONFIRMADA, EstadoReserva.PENDIENTE)) {
                         Button(
                             onClick = { onEvent(BookingDetailUiEvent.NavigateToModify(bookingId)) },
-                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = onErrorDark),
                             shape = RoundedCornerShape(25.dp)
                         ) {
@@ -202,7 +282,10 @@ fun BookingDetailBody(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        TextButton(onClick = { onEvent(BookingDetailUiEvent.CancelarReserva) }, modifier = Modifier.fillMaxWidth()) {
+                        TextButton(
+                            onClick = { onEvent(BookingDetailUiEvent.CancelarReserva) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Text("Cancelar Reserva", color = onErrorDark)
                         }
                     }
@@ -226,7 +309,12 @@ private fun DetailRow(icon: ImageVector, label: String, value: String) {
 
 @Composable
 private fun PriceDetailRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
         Text(label, fontSize = 14.sp, color = MaterialTheme.colorScheme.outline)
         Text(value, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
     }
@@ -237,6 +325,6 @@ private fun PriceDetailRow(label: String, value: String) {
 private fun BookingDetailBodyPreview() {
     MaterialTheme {
         val state = BookingDetailUiState()
-        BookingDetailBody(state, 1) {}
+        BookingDetailBody(state, "1") {}
     }
 }

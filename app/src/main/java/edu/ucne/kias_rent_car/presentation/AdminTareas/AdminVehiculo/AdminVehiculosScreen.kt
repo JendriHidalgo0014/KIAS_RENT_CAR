@@ -88,8 +88,8 @@ fun AdminVehiculosBody(
                     when (route) {
                         "admin_home" -> onEvent(AdminVehiculosUiEvent.NavigateToHome)
                         "admin_reservas" -> onEvent(AdminVehiculosUiEvent.NavigateToReservas)
-                        "admin_vehiculos" -> { }
                         "admin_profile" -> onEvent(AdminVehiculosUiEvent.NavigateToProfile)
+                        else -> Unit
                     }
                 }
             )
