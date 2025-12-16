@@ -16,7 +16,6 @@ class UsuarioRepositoryImpl @Inject constructor(
     private val localDataSource: UsuarioDao,
     private val remoteDataSource: UsuarioRemoteDataSource
 ) : UsuarioRepository {
-
     override suspend fun login(email: String, password: String): Resource<Usuario> {
         if (email.isBlank() || password.isBlank()) {
             return Resource.Error("Email y contraseña son requeridos")
@@ -136,18 +135,18 @@ class UsuarioRepositoryImpl @Inject constructor(
         val usuario = localDataSource.getById(id)
         val remoteId = usuario?.remoteId ?: id.toIntOrNull()
 
-        return if (remoteId != null) {
-            when (val result = remoteDataSource.deleteUsuario(remoteId)) {
-                is Resource.Success -> {
-                    localDataSource.deleteById(id)
-                    Resource.Success(Unit)
-                }
-                is Resource.Error -> Resource.Error(result.message)
-                is Resource.Loading -> Resource.Loading
-            }
-        } else {
+        if (remoteId == null) {
             localDataSource.deleteById(id)
-            Resource.Success(Unit)
+            return Resource.Success(Unit)
+        }
+
+        return when (val result = remoteDataSource.deleteUsuario(remoteId)) {
+            is Resource.Success -> {
+                localDataSource.deleteById(id)
+                Resource.Success(Unit)
+            }
+            is Resource.Error -> Resource.Error(result.message)
+            is Resource.Loading -> Resource.Loading
         }
     }
 }

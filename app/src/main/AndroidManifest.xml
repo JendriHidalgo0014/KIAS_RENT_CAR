@@ -15,7 +15,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.KIAS_RENT_CAR"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        tools:ignore="CleartextTraffic"
+        tools:targetApi="31">
 
         <provider
             android:name="androidx.startup.InitializationProvider"
@@ -39,5 +41,4 @@
             </intent-filter>
         </activity>
     </application>
-
 </manifest>
