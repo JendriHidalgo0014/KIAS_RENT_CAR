@@ -71,7 +71,7 @@ fun AddVehiculoBody(
                 value = state.modelo,
                 onValueChange = { onEvent(AddVehiculoUiEvent.OnModeloChange(it)) },
                 label = "Modelo",
-                placeholder = "Ej. Kia Rio"
+                config = KiaTextFieldConfig(placeholder = "Ej. Kia Rio")
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -80,9 +80,11 @@ fun AddVehiculoBody(
                 value = state.descripcion,
                 onValueChange = { onEvent(AddVehiculoUiEvent.OnDescripcionChange(it)) },
                 label = "Descripción",
-                placeholder = "Añade una descripción",
-                singleLine = false,
-                minHeight = 100.dp
+                config = KiaTextFieldConfig(
+                    placeholder = "Añade una descripción",
+                    singleLine = false,
+                    minHeight = 100.dp
+                )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -129,8 +131,10 @@ fun AddVehiculoBody(
                     value = state.precioPorDia,
                     onValueChange = { onEvent(AddVehiculoUiEvent.OnPrecioChange(it)) },
                     label = "Precio x Día",
-                    placeholder = "$ 150.00",
-                    keyboardType = KeyboardType.Number,
+                    config = KiaTextFieldConfig(
+                        placeholder = "$ 150.00",
+                        keyboardType = KeyboardType.Number
+                    ),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -149,7 +153,7 @@ fun AddVehiculoBody(
                 value = state.imagenUrl,
                 onValueChange = { onEvent(AddVehiculoUiEvent.OnImagenUrlChange(it)) },
                 label = "Imagen URL",
-                placeholder = "https://ejemplo.com/imagen.jpg"
+                config = KiaTextFieldConfig(placeholder = "https://ejemplo.com/imagen.jpg")
             )
 
             state.error?.let { error ->
