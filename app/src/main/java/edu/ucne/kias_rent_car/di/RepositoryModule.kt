@@ -19,7 +19,7 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 @Suppress("UnnecessaryAbstractClass")
-abstract class RepositoryModule {
+interface RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindUsuarioRepository(impl: UsuarioRepositoryImpl): UsuarioRepository

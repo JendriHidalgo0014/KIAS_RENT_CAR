@@ -32,7 +32,7 @@ import edu.ucne.kias_rent_car.ui.theme.scrimLight
 @Composable
 fun BookingsScreen(
     viewModel: BookingsViewModel = hiltViewModel(),
-    onNavigateToBookingDetail: (Int) -> Unit,
+    onNavigateToBookingDetail: (String) -> Unit,
     onNavigateToHome: () -> Unit,
     onNavigateToSupport: () -> Unit,
     onNavigateToProfile: () -> Unit
@@ -62,7 +62,13 @@ fun BookingsBody(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("KIA'S RENT CAR", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        "KIA'S RENT CAR",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = scrimLight)
             )
         },
@@ -72,23 +78,36 @@ fun BookingsBody(
                 onNavigate = { route ->
                     when (route) {
                         "home" -> onEvent(BookingsUiEvent.NavigateToHome)
-                        "bookings" -> { }
                         "support" -> onEvent(BookingsUiEvent.NavigateToSupport)
                         "profile" -> onEvent(BookingsUiEvent.NavigateToProfile)
+                        else -> Unit
                     }
                 }
             )
         },
         containerColor = scrimLight
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 20.dp)
+        ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("Reservas", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                "Reservas",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 FilterChip(
                     selected = state.filtro == BookingFilter.ACTUALES,
                     onClick = { onEvent(BookingsUiEvent.FilterChanged(BookingFilter.ACTUALES)) },
@@ -117,12 +136,18 @@ fun BookingsBody(
 
             when {
                 state.isLoading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
                         CircularProgressIndicator(color = onErrorDark)
                     }
                 }
                 state.reservaciones.isEmpty() -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text("No tienes reservaciones", color = MaterialTheme.colorScheme.outline)
                     }
                 }
@@ -131,7 +156,7 @@ fun BookingsBody(
                         items(state.reservaciones) { reservacion ->
                             BookingCard(
                                 reservacion = reservacion,
-                                onClick = { onEvent(BookingsUiEvent.NavigateToDetail(reservacion.reservacionId)) }
+                                onNavigateToDetail = { onEvent(BookingsUiEvent.NavigateToDetail(it)) }
                             )
                         }
                         item { Spacer(modifier = Modifier.height(16.dp)) }
@@ -143,32 +168,56 @@ fun BookingsBody(
 }
 
 @Composable
-private fun BookingCard(reservacion: Reservacion, onClick: () -> Unit) {
+private fun BookingCard(
+    reservacion: Reservacion,
+    onNavigateToDetail: (String) -> Unit
+) {
     val estadoColor = when (reservacion.estado) {
-        EstadoReserva.CONFIRMADA, EstadoReserva.CONFIRMADA -> MaterialTheme.colorScheme.primary
+        EstadoReserva.CONFIRMADA -> MaterialTheme.colorScheme.primary
         EstadoReserva.PENDIENTE -> MaterialTheme.colorScheme.tertiary
-        EstadoReserva.CANCELADA, EstadoReserva.CANCELADA -> onErrorDark
+        EstadoReserva.CANCELADA -> onErrorDark
         else -> MaterialTheme.colorScheme.outline
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = { onNavigateToDetail(reservacion.id) }),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
             SubcomposeAsyncImage(
-                model = ImageRequest.Builder(LocalContext.current).data(reservacion.vehiculo?.imagenUrl).crossfade(true).build(),
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(reservacion.vehiculo?.imagenUrl)
+                    .crossfade(true)
+                    .build(),
                 contentDescription = reservacion.vehiculo?.modelo,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(80.dp).clip(RoundedCornerShape(8.dp)),
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(8.dp)),
                 loading = {
-                    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surface),
+                        contentAlignment = Alignment.Center
+                    ) {
                         CircularProgressIndicator(color = onErrorDark, modifier = Modifier.size(20.dp))
                     }
                 },
                 error = {
-                    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surface),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(Icons.Default.DirectionsCar, null, tint = MaterialTheme.colorScheme.outline)
                     }
                 }
@@ -177,21 +226,38 @@ private fun BookingCard(reservacion: Reservacion, onClick: () -> Unit) {
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(reservacion.estado, fontSize = 12.sp, color = estadoColor, fontWeight = FontWeight.Medium)
+                Text(
+                    reservacion.estado,
+                    fontSize = 12.sp,
+                    color = estadoColor,
+                    fontWeight = FontWeight.Medium
+                )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(reservacion.vehiculo?.modelo ?: "", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                Text("${reservacion.fechaRecogida} - ${reservacion.fechaDevolucion}", fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
+                Text(
+                    reservacion.vehiculo?.modelo ?: "",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    "${reservacion.fechaRecogida} - ${reservacion.fechaDevolucion}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.outline
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Button(
-                    onClick = onClick,
+                    onClick = { onNavigateToDetail(reservacion.id) },
                     modifier = Modifier.height(32.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = onErrorDark),
                     contentPadding = PaddingValues(horizontal = 12.dp),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text(if (reservacion.estado == EstadoReserva.PENDIENTE) "Gestionar" else "Ver Detalles", fontSize = 12.sp)
+                    Text(
+                        if (reservacion.estado == EstadoReserva.PENDIENTE) "Gestionar" else "Ver Detalles",
+                        fontSize = 12.sp
+                    )
                 }
             }
         }

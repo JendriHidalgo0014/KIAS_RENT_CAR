@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import edu.ucne.kias_rent_car.data.remote.Resource
+import edu.ucne.kias_rent_car.domain.model.VehicleParams
 import edu.ucne.kias_rent_car.domain.usecase.Vehicle.CreateVehicleUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +17,7 @@ import javax.inject.Inject
 class AddVehiculoViewModel @Inject constructor(
     private val createVehicleUseCase: CreateVehicleUseCase
 ) : ViewModel() {
+
     private val _state = MutableStateFlow(AddVehiculoUiState())
     val state: StateFlow<AddVehiculoUiState> = _state.asStateFlow()
 
@@ -56,7 +58,7 @@ class AddVehiculoViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
-            val result = createVehicleUseCase(
+            val params = VehicleParams(
                 modelo = _state.value.modelo,
                 descripcion = _state.value.descripcion,
                 categoria = _state.value.categoria,
@@ -66,10 +68,10 @@ class AddVehiculoViewModel @Inject constructor(
                 imagenUrl = _state.value.imagenUrl
             )
 
-            when (result) {
-                is Resource.Success<*> -> _state.update { it.copy(isLoading = false, saveSuccess = true) }
-                is Resource.Error<*> -> _state.update { it.copy(isLoading = false, error = result.message) }
-                is Resource.Loading<*> -> {}
+            when (val result = createVehicleUseCase(params)) {
+                is Resource.Success -> _state.update { it.copy(isLoading = false, saveSuccess = true) }
+                is Resource.Error -> _state.update { it.copy(isLoading = false, error = result.message) }
+                is Resource.Loading -> Unit
             }
         }
     }

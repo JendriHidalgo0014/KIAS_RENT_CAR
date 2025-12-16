@@ -128,10 +128,11 @@ class ReservacionRepositoryImpl @Inject constructor(
         val usuarioId = usuarioLogueado?.remoteId ?: 1
         val vehiculo = vehicleDao.getById(config.vehicleId)
         val codigoReserva = generateCodigoReserva()
+        val vehiculoId = vehiculo?.remoteId ?: config.vehicleId.toIntOrNull() ?: 0
 
         val request = ReservacionRequest(
             reservaId = 0,
-            vehiculoId = vehiculo?.remoteId ?: config.vehicleId.toIntOrNull() ?: 0,
+            vehiculoId = vehiculoId,
             usuarioId = usuarioId.toString(),
             fechaRecogida = config.fechaRecogida,
             horaRecogida = config.horaRecogida,
@@ -317,11 +318,15 @@ class ReservacionRepositoryImpl @Inject constructor(
     )
 
     private fun buildReservacionEntity(params: ReservacionBuildParams): ReservacionEntity {
+        val vehiculoId = params.vehiculo?.remoteId
+            ?: params.config.vehicleId.toIntOrNull()
+            ?: 0
+
         return ReservacionEntity(
             id = UUID.randomUUID().toString(),
             remoteId = params.remoteId,
             usuarioId = params.usuarioId,
-            vehiculoId = params.vehiculo?.remoteId ?: params.config.vehicleId.toIntOrNull() ?: 0,
+            vehiculoId = vehiculoId,
             fechaRecogida = params.config.fechaRecogida,
             horaRecogida = params.config.horaRecogida,
             fechaDevolucion = params.config.fechaDevolucion,
