@@ -128,7 +128,8 @@ class ReservacionRepositoryImpl @Inject constructor(
         val usuarioId = usuarioLogueado?.remoteId ?: 1
         val vehiculo = vehicleDao.getById(config.vehicleId)
         val codigoReserva = generateCodigoReserva()
-        val vehiculoId = vehiculo?.remoteId ?: config.vehicleId.toIntOrNull() ?: 0
+
+        val vehiculoId = resolveVehiculoId(vehiculo, config.vehicleId)
 
         val request = ReservacionRequest(
             reservaId = 0,
@@ -171,6 +172,10 @@ class ReservacionRepositoryImpl @Inject constructor(
         }
     }
 
+    private fun resolveVehiculoId(vehiculo: VehicleEntity?, vehicleIdString: String): Int {
+        return vehiculo?.remoteId ?: vehicleIdString.toIntOrNull() ?: 0
+    }
+
     override suspend fun updateReservacion(
         reservacionId: String,
         ubicacionRecogidaId: Int,
@@ -184,7 +189,6 @@ class ReservacionRepositoryImpl @Inject constructor(
             reservacionId, ubicacionRecogidaId, ubicacionDevolucionId,
             fechaRecogida, horaRecogida, fechaDevolucion, horaDevolucion
         )
-
         val reservacion = localDataSource.getById(reservacionId)
         val remoteId = reservacion?.remoteId
 
@@ -318,9 +322,7 @@ class ReservacionRepositoryImpl @Inject constructor(
     )
 
     private fun buildReservacionEntity(params: ReservacionBuildParams): ReservacionEntity {
-        val vehiculoId = params.vehiculo?.remoteId
-            ?: params.config.vehicleId.toIntOrNull()
-            ?: 0
+        val vehiculoId = resolveVehiculoId(params.vehiculo, params.config.vehicleId)
 
         return ReservacionEntity(
             id = UUID.randomUUID().toString(),
