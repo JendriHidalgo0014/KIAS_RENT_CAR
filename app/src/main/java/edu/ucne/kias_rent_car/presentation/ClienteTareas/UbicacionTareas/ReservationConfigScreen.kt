@@ -137,8 +137,7 @@ fun ReservationConfigBody(
                 onDateSelected = { onEvent(ReservationConfigUiEvent.OnFechaDevolucionChange(it)) },
                 onTimeSelected = { onEvent(ReservationConfigUiEvent.OnHoraDevolucionChange(it)) },
                 selectedDate = state.fechaDevolucion,
-                selectedTime = state.horaDevolucion,
-                minDate = state.fechaRecogida
+                selectedTime = state.horaDevolucion
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -222,8 +221,7 @@ private fun DateTimeSelector(
     onDateSelected: (LocalDate) -> Unit,
     onTimeSelected: (LocalTime) -> Unit,
     selectedDate: LocalDate?,
-    selectedTime: LocalTime?,
-    minDate: LocalDate? = null
+    selectedTime: LocalTime?
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }

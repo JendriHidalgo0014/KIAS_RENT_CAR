@@ -78,14 +78,12 @@ class RegistroViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
 
-            val result = registrarUsuarioUseCase(
+            when (val result = registrarUsuarioUseCase(
                 nombre = _state.value.nombre,
                 email = _state.value.email,
                 password = _state.value.password,
                 telefono = _state.value.telefono.ifBlank { null }
-            )
-
-            when (result) {
+            )) {
                 is Resource.Success -> {
                     _state.update {
                         it.copy(
@@ -99,11 +97,11 @@ class RegistroViewModel @Inject constructor(
                     _state.update {
                         it.copy(
                             isLoading = false,
-                            userMessage = result.message ?: "Error al registrar"
+                            userMessage = result.message
                         )
                     }
                 }
-                is Resource.Loading -> {}
+                is Resource.Loading -> Unit
             }
         }
     }

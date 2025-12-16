@@ -20,19 +20,13 @@ class MensajeRepositoryImpl @Inject constructor(
     private val usuarioDao: UsuarioDao
 ) : MensajeRepository {
 
-    private val errorDesconocido = "Error desconocido"
-    private val errorObtenerMensajes = "Error al obtener mensajes"
-    private val errorMensajeNoEncontrado = "Mensaje no encontrado"
-    private val nombreUsuarioDefecto = "Usuario"
-    private val usuarioIdDefecto = 1
-
     override suspend fun getMensajes(): Resource<List<Mensaje>> {
         return try {
             when (val result = remoteDataSource.getMensajes()) {
                 is Resource.Success -> {
                     val pendingIds = (localDataSource.getPendingCreate() + localDataSource.getPendingUpdate())
                         .mapNotNull { it.remoteId }.toSet()
-                    val toInsert = result.data?.toEntityList()?.filter { it.remoteId !in pendingIds } ?: emptyList()
+                    val toInsert = result.data.toEntityList().filter { it.remoteId !in pendingIds }
                     localDataSource.insertMensajes(toInsert)
                     Resource.Success(localDataSource.getMensajes().toDomainList())
                 }
@@ -41,17 +35,17 @@ class MensajeRepositoryImpl @Inject constructor(
                     if (locales.isNotEmpty()) {
                         Resource.Success(locales.toDomainList())
                     } else {
-                        Resource.Error(result.message ?: errorDesconocido)
+                        Resource.Error(result.message)
                     }
                 }
-                is Resource.Loading -> Resource.Loading()
+                is Resource.Loading -> Resource.Loading
             }
         } catch (e: Exception) {
             val locales = localDataSource.getMensajes()
             if (locales.isNotEmpty()) {
                 Resource.Success(locales.toDomainList())
             } else {
-                Resource.Error(e.localizedMessage ?: errorObtenerMensajes)
+                Resource.Error(e.localizedMessage ?: "Error al obtener mensajes")
             }
         }
     }
@@ -70,24 +64,24 @@ class MensajeRepositoryImpl @Inject constructor(
             }
 
             return when (val result = remoteDataSource.getMensajeById(remoteId)) {
-                is Resource.Success -> Resource.Success(result.data!!.toDomain())
-                is Resource.Error -> Resource.Error(result.message ?: errorDesconocido)
-                is Resource.Loading -> Resource.Loading()
+                is Resource.Success -> Resource.Success(result.data.toDomain())
+                is Resource.Error -> Resource.Error(result.message)
+                is Resource.Loading -> Resource.Loading
             }
         }
 
-        return Resource.Error(errorMensajeNoEncontrado)
+        return Resource.Error("Mensaje no encontrado")
     }
 
     override suspend fun getMensajesByUsuario(usuarioId: Int): Resource<List<Mensaje>> {
         return try {
             when (val result = remoteDataSource.getMensajesByUsuario(usuarioId)) {
                 is Resource.Success -> {
-                    result.data?.toEntityList()?.let { localDataSource.insertMensajes(it) }
+                    localDataSource.insertMensajes(result.data.toEntityList())
                     Resource.Success(localDataSource.getMensajesByUsuario(usuarioId).toDomainList())
                 }
                 is Resource.Error -> Resource.Success(localDataSource.getMensajesByUsuario(usuarioId).toDomainList())
-                is Resource.Loading -> Resource.Loading()
+                is Resource.Loading -> Resource.Loading
             }
         } catch (e: Exception) {
             Resource.Success(localDataSource.getMensajesByUsuario(usuarioId).toDomainList())
@@ -96,8 +90,8 @@ class MensajeRepositoryImpl @Inject constructor(
 
     override suspend fun createMensajeLocal(asunto: String, contenido: String): Resource<Mensaje> {
         val usuarioLogueado = usuarioDao.getLoggedInUsuario()
-        val usuarioId = usuarioLogueado?.remoteId ?: usuarioIdDefecto
-        val nombreUsuario = usuarioLogueado?.nombre ?: nombreUsuarioDefecto
+        val usuarioId = usuarioLogueado?.remoteId ?: 1
+        val nombreUsuario = usuarioLogueado?.nombre ?: "Usuario"
 
         val entity = MensajeEntity(
             id = UUID.randomUUID().toString(),
@@ -118,19 +112,19 @@ class MensajeRepositoryImpl @Inject constructor(
 
     override suspend fun sendMensaje(asunto: String, contenido: String): Resource<Mensaje> {
         val usuarioLogueado = usuarioDao.getLoggedInUsuario()
-        val usuarioId = usuarioLogueado?.remoteId ?: usuarioIdDefecto
+        val usuarioId = usuarioLogueado?.remoteId ?: 1
 
         return when (val result = remoteDataSource.sendMensaje(usuarioId, asunto, contenido)) {
             is Resource.Success -> {
                 val entity = MensajeEntity(
                     id = UUID.randomUUID().toString(),
-                    remoteId = result.data?.mensajeId,
+                    remoteId = result.data.mensajeId,
                     usuarioId = usuarioId,
-                    nombreUsuario = usuarioLogueado?.nombre ?: nombreUsuarioDefecto,
+                    nombreUsuario = usuarioLogueado?.nombre ?: "Usuario",
                     asunto = asunto,
                     contenido = contenido,
                     respuesta = null,
-                    fechaCreacion = result.data?.fechaCreacion ?: LocalDateTime.now().toString(),
+                    fechaCreacion = result.data.fechaCreacion ?: LocalDateTime.now().toString(),
                     leido = false,
                     isPendingCreate = false,
                     isPendingUpdate = false
@@ -139,7 +133,7 @@ class MensajeRepositoryImpl @Inject constructor(
                 Resource.Success(entity.toDomain())
             }
             is Resource.Error -> createMensajeLocal(asunto, contenido)
-            is Resource.Loading -> Resource.Loading()
+            is Resource.Loading -> Resource.Loading
         }
     }
 
@@ -150,7 +144,7 @@ class MensajeRepositoryImpl @Inject constructor(
         val remoteId = mensaje?.remoteId
 
         return if (remoteId != null) {
-            when (val result = remoteDataSource.responderMensaje(remoteId, respuesta)) {
+            when (remoteDataSource.responderMensaje(remoteId, respuesta)) {
                 is Resource.Success -> {
                     localDataSource.markAsUpdated(mensajeId)
                     Resource.Success(Unit)
@@ -170,9 +164,7 @@ class MensajeRepositoryImpl @Inject constructor(
                 asunto = mensaje.asunto,
                 contenido = mensaje.contenido
             )) {
-                is Resource.Success -> result.data?.mensajeId?.let {
-                    localDataSource.markAsCreated(mensaje.id, it)
-                }
+                is Resource.Success -> localDataSource.markAsCreated(mensaje.id, result.data.mensajeId)
                 else -> Unit
             }
         }

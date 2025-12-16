@@ -3,7 +3,7 @@ package edu.ucne.kias_rent_car.presentation.ClienteTareas.BookingsTareas
 import edu.ucne.kias_rent_car.domain.model.Ubicacion
 
 data class ModifyBookingUiState(
-    val bookingId: Int = 0,
+    val bookingId: String = "",
     val ubicaciones: List<Ubicacion> = emptyList(),
     val ubicacionRecogida: Ubicacion? = null,
     val ubicacionDevolucion: Ubicacion? = null,

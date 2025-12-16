@@ -14,8 +14,8 @@ class CreateReservacionUseCase @Inject constructor(
                 configResult.data?.let { repository.createReservacion(it) }
                     ?: Resource.Error("No hay configuración de reserva")
             }
-            is Resource.Error -> Resource.Error(configResult.message ?: "Error desconocido")
-            is Resource.Loading -> Resource.Loading()
+            is Resource.Error -> Resource.Error(configResult.message)
+            is Resource.Loading -> Resource.Loading
         }
     }
 }

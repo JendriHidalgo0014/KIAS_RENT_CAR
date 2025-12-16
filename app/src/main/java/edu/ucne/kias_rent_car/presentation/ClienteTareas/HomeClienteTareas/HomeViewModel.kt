@@ -21,6 +21,7 @@ class HomeViewModel @Inject constructor(
     private val searchVehiclesUseCase: SearchVehiclesUseCase,
     private val refreshVehiclesUseCase: RefreshVehiclesUseCase
 ) : ViewModel() {
+
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
 
@@ -70,12 +71,12 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isRefreshing = true) }
             when (val result = refreshVehiclesUseCase()) {
-                is Resource.Success<*> -> {
+                is Resource.Success -> {
                     _state.update { it.copy(isRefreshing = false) }
                     loadVehicles()
                 }
-                is Resource.Error<*> -> _state.update { it.copy(isRefreshing = false, error = result.message) }
-                is Resource.Loading<*> -> {}
+                is Resource.Error -> _state.update { it.copy(isRefreshing = false, error = result.message) }
+                is Resource.Loading -> Unit
             }
         }
     }

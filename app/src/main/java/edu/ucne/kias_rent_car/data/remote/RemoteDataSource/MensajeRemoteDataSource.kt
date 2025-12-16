@@ -10,17 +10,21 @@ import javax.inject.Inject
 class MensajeRemoteDataSource @Inject constructor(
     private val api: ApiService
 ) {
+    private val errorRed = "Error de red"
+    private val errorRespuestaVacia = "Respuesta vacía del servidor"
+    private val errorMensajeNoEncontrado = "Mensaje no encontrado"
+
     suspend fun getMensajes(): Resource<List<MensajeDto>> {
         return try {
             val response = api.getMensajes()
             if (response.isSuccessful) {
                 response.body()?.let { Resource.Success(it) }
-                    ?: Resource.Error("Respuesta vacía del servidor")
+                    ?: Resource.Error(errorRespuestaVacia)
             } else {
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 
@@ -29,12 +33,12 @@ class MensajeRemoteDataSource @Inject constructor(
             val response = api.getMensajeById(id)
             if (response.isSuccessful) {
                 response.body()?.let { Resource.Success(it) }
-                    ?: Resource.Error("Mensaje no encontrado")
+                    ?: Resource.Error(errorMensajeNoEncontrado)
             } else {
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 
@@ -43,12 +47,12 @@ class MensajeRemoteDataSource @Inject constructor(
             val response = api.getMensajesByUsuario(usuarioId)
             if (response.isSuccessful) {
                 response.body()?.let { Resource.Success(it) }
-                    ?: Resource.Error("Respuesta vacía del servidor")
+                    ?: Resource.Error(errorRespuestaVacia)
             } else {
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 
@@ -62,12 +66,12 @@ class MensajeRemoteDataSource @Inject constructor(
             val response = api.createMensaje(request)
             if (response.isSuccessful) {
                 response.body()?.let { Resource.Success(it) }
-                    ?: Resource.Error("Respuesta vacía del servidor")
+                    ?: Resource.Error(errorRespuestaVacia)
             } else {
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 
@@ -80,7 +84,7 @@ class MensajeRemoteDataSource @Inject constructor(
                 Resource.Error("HTTP ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            Resource.Error(e.localizedMessage ?: "Error de red")
+            Resource.Error(e.localizedMessage ?: errorRed)
         }
     }
 }

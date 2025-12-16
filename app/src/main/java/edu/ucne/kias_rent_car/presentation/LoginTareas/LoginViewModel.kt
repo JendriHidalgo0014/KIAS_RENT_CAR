@@ -42,9 +42,7 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
 
-            val result = loginUseCase(_state.value.email, _state.value.password)
-
-            when (result) {
+            when (val result = loginUseCase(_state.value.email, _state.value.password)) {
                 is Resource.Success -> {
                     _state.update {
                         it.copy(
@@ -57,11 +55,11 @@ class LoginViewModel @Inject constructor(
                     _state.update {
                         it.copy(
                             isLoading = false,
-                            userMessage = result.message ?: "Error al iniciar sesión"
+                            userMessage = result.message
                         )
                     }
                 }
-                is Resource.Loading -> {}
+                is Resource.Loading -> Unit
             }
         }
     }

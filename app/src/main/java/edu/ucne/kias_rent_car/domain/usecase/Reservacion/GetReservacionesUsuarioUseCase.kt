@@ -17,8 +17,8 @@ class GetReservacionesUsuarioUseCase @Inject constructor(
                     reservacionRepository.getReservacionesByUsuario(it)
                 } ?: Resource.Success(emptyList())
             }
-            is Resource.Error -> Resource.Error(usuarioResult.message ?: "Error desconocido")
-            is Resource.Loading -> Resource.Loading()
+            is Resource.Error -> Resource.Error(usuarioResult.message)
+            is Resource.Loading -> Resource.Loading
         }
     }
 }

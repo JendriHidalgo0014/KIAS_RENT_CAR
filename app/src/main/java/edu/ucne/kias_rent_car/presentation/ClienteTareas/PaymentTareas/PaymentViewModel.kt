@@ -18,6 +18,7 @@ class PaymentViewModel @Inject constructor(
     private val createReservacionUseCase: CreateReservacionUseCase,
     private val getReservationConfigUseCase: GetReservationConfigUseCase
 ) : ViewModel() {
+
     private val _state = MutableStateFlow(PaymentUiState())
     val state: StateFlow<PaymentUiState> = _state.asStateFlow()
 
@@ -57,9 +58,14 @@ class PaymentViewModel @Inject constructor(
 
     private fun loadReservationConfig() {
         viewModelScope.launch {
-            val config = getReservationConfigUseCase()
-            config?.let { cfg ->
-                _state.update { it.copy(total = cfg.total) }
+            when (val result = getReservationConfigUseCase()) {
+                is Resource.Success -> {
+                    result.data?.let { cfg ->
+                        _state.update { it.copy(total = cfg.total) }
+                    }
+                }
+                is Resource.Error -> Unit
+                is Resource.Loading -> Unit
             }
         }
     }
@@ -79,23 +85,20 @@ class PaymentViewModel @Inject constructor(
     private fun procesarPago() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-
             when (val result = createReservacionUseCase()) {
                 is Resource.Success -> {
                     _state.update {
                         it.copy(
                             isLoading = false,
                             paymentSuccess = true,
-                            reservacionId = result.data?.reservacionId?.toString() ?: "0"
+                            reservacionId = result.data.id
                         )
                     }
                 }
                 is Resource.Error -> {
                     _state.update { it.copy(isLoading = false) }
                 }
-                is Resource.Loading -> {
-                    _state.update { it.copy(isLoading = true) }
-                }
+                is Resource.Loading -> Unit
             }
         }
     }

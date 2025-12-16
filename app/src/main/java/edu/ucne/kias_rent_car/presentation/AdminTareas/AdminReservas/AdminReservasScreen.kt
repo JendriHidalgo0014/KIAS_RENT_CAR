@@ -29,7 +29,6 @@ import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import edu.ucne.kias_rent_car.domain.model.EstadoReserva
 import edu.ucne.kias_rent_car.domain.model.Reservacion
-import edu.ucne.kias_rent_car.domain.model.Usuario
 import edu.ucne.kias_rent_car.presentation.Components.AdminBottomNavigation
 import edu.ucne.kias_rent_car.ui.theme.onErrorDark
 import edu.ucne.kias_rent_car.ui.theme.scrimLight
@@ -38,7 +37,7 @@ import edu.ucne.kias_rent_car.ui.theme.scrimLight
 fun AdminReservasScreen(
     viewModel: AdminReservasViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onNavigateToModifyEstado: (Int) -> Unit,
+    onNavigateToModifyEstado: (String) -> Unit,
     onNavigateToHome: () -> Unit,
     onNavigateToVehiculos: () -> Unit,
     onNavigateToProfile: () -> Unit
@@ -96,9 +95,9 @@ fun AdminReservasBody(
                 onNavigate = { route ->
                     when (route) {
                         "admin_home" -> onEvent(AdminReservasEvent.NavigateToHome)
-                        "admin_reservas" -> { }
                         "admin_vehiculos" -> onEvent(AdminReservasEvent.NavigateToVehiculos)
                         "admin_profile" -> onEvent(AdminReservasEvent.NavigateToProfile)
+                        else -> Unit
                     }
                 }
             )
@@ -156,7 +155,7 @@ fun AdminReservasBody(
                     items(state.reservaciones) { reservacion ->
                         AdminReservaCard(
                             reservacion = reservacion,
-                            onClick = { onEvent(AdminReservasEvent.ReservaClicked(reservacion.reservacionId)) }
+                            onClick = { onEvent(AdminReservasEvent.ReservaClicked(reservacion.id)) }
                         )
                     }
                     item {
@@ -277,48 +276,8 @@ private fun AdminReservasBodyPreview() {
         val state = AdminReservasUiState(
             isLoading = false,
             filtroActual = EstadoReserva.TODOS,
-            reservaciones = listOf(
-                Reservacion(
-                    reservacionId = 1,
-                    usuarioId = 1,
-                    vehiculoId = 1,
-                    fechaRecogida = "2025-01-15",
-                    horaRecogida = "10:00",
-                    fechaDevolucion = "2025-01-20",
-                    horaDevolucion = "10:00",
-                    ubicacionRecogidaId = 1,
-                    ubicacionDevolucionId = 1,
-                    estado = EstadoReserva.CONFIRMADA,
-                    subtotal = 500.0,
-                    impuestos = 90.0,
-                    total = 590.0,
-                    codigoReserva = "KR-123456",
-                    fechaCreacion = "2025-01-10",
-                    usuario = Usuario(id = 1, nombre = "Juan Pérez", email = "juan@test.com", telefono = null, rol = "Cliente"),
-                    vehiculo = null
-                ),
-                Reservacion(
-                    reservacionId = 2,
-                    usuarioId = 2,
-                    vehiculoId = 2,
-                    fechaRecogida = "2025-01-18",
-                    horaRecogida = "09:00",
-                    fechaDevolucion = "2025-01-22",
-                    horaDevolucion = "09:00",
-                    ubicacionRecogidaId = 1,
-                    ubicacionDevolucionId = 1,
-                    estado = EstadoReserva.EN_PROCESO,
-                    subtotal = 600.0,
-                    impuestos = 108.0,
-                    total = 708.0,
-                    codigoReserva = "KR-789012",
-                    fechaCreacion = "2025-01-12",
-                    usuario = Usuario(id = 2, nombre = "María García", email = "maria@test.com", telefono = null, rol = "Cliente"),
-                    vehiculo = null
-                )
-            )
+            reservaciones = emptyList()
         )
-
         AdminReservasBody(state) {}
     }
 }

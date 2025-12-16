@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import edu.ucne.kias_rent_car.data.remote.Resource
-import edu.ucne.kias_rent_car.domain.model.Ubicacion
 import edu.ucne.kias_rent_car.domain.usecase.Reservacion.GetReservacionByIdUseCase
 import edu.ucne.kias_rent_car.domain.usecase.Reservacion.UpdateReservacionUseCase
 import edu.ucne.kias_rent_car.domain.usecase.Ubicacion.GetUbicacionesUseCase
@@ -27,6 +26,12 @@ class ModifyBookingViewModel @Inject constructor(
     private val _state = MutableStateFlow(ModifyBookingUiState())
     val state: StateFlow<ModifyBookingUiState> = _state.asStateFlow()
 
+    private val errorRecogida = "Selecciona el lugar de recogida"
+    private val errorDevolucion = "Selecciona el lugar de devolución"
+    private val errorFechaRecogida = "Selecciona la fecha de recogida"
+    private val errorFechaDevolucion = "Selecciona la fecha de devolución"
+    private val errorNoEncontrada = "No se encontró la reservación"
+
     fun onEvent(event: ModifyBookingUiEvent) {
         when (event) {
             is ModifyBookingUiEvent.LoadBooking -> loadBooking(event.bookingId)
@@ -39,30 +44,40 @@ class ModifyBookingViewModel @Inject constructor(
         }
     }
 
-    private fun loadBooking(bookingId: Int) {
+    private fun loadBooking(bookingId: String) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-            val ubicaciones = getUbicacionesUseCase()
-            val reservacion = getReservacionByIdUseCase(bookingId)
 
-            reservacion?.let { r ->
-                _state.update {
-                    it.copy(
-                        bookingId = r.reservacionId,
-                        ubicaciones = ubicaciones,
-                        ubicacionRecogida = r.ubicacionRecogida,
-                        ubicacionDevolucion = r.ubicacionDevolucion,
-                        fechaRecogida = "${r.fechaRecogida} - ${r.horaRecogida}",
-                        fechaDevolucion = "${r.fechaDevolucion} - ${r.horaDevolucion}",
-                        fechaRecogidaDate = r.fechaRecogida,
-                        horaRecogidaTime = r.horaRecogida,
-                        fechaDevolucionDate = r.fechaDevolucion,
-                        horaDevolucionTime = r.horaDevolucion,
-                        isLoading = false
-                    )
+            val ubicaciones = getUbicacionesUseCase()
+
+            when (val result = getReservacionByIdUseCase(bookingId)) {
+                is Resource.Success -> {
+                    val r = result.data
+                    _state.update {
+                        it.copy(
+                            bookingId = r.id,
+                            ubicaciones = ubicaciones,
+                            ubicacionRecogida = r.ubicacionRecogida,
+                            ubicacionDevolucion = r.ubicacionDevolucion,
+                            fechaRecogida = "${r.fechaRecogida} - ${r.horaRecogida}",
+                            fechaDevolucion = "${r.fechaDevolucion} - ${r.horaDevolucion}",
+                            fechaRecogidaDate = r.fechaRecogida,
+                            horaRecogidaTime = r.horaRecogida,
+                            fechaDevolucionDate = r.fechaDevolucion,
+                            horaDevolucionTime = r.horaDevolucion,
+                            isLoading = false
+                        )
+                    }
                 }
-            } ?: run {
-                _state.update { it.copy(isLoading = false, error = "No se encontró la reservación") }
+                is Resource.Error -> {
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = result.message
+                        )
+                    }
+                }
+                is Resource.Loading -> Unit
             }
         }
     }
@@ -70,6 +85,7 @@ class ModifyBookingViewModel @Inject constructor(
     private fun onFechaRecogidaChanged(fecha: LocalDate, hora: LocalTime) {
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
         _state.update {
             it.copy(
                 fechaRecogida = "${fecha.format(dateFormatter)} - ${hora.format(timeFormatter)}",
@@ -83,6 +99,7 @@ class ModifyBookingViewModel @Inject constructor(
     private fun onFechaDevolucionChanged(fecha: LocalDate, hora: LocalTime) {
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
         _state.update {
             it.copy(
                 fechaDevolucion = "${fecha.format(dateFormatter)} - ${hora.format(timeFormatter)}",
@@ -97,29 +114,42 @@ class ModifyBookingViewModel @Inject constructor(
         viewModelScope.launch {
             val s = _state.value
 
+            val ubicacionRecogida = s.ubicacionRecogida
+            val ubicacionDevolucion = s.ubicacionDevolucion
+
             when {
-                s.ubicacionRecogida == null -> { _state.update { it.copy(error = "Selecciona el lugar de recogida") }; return@launch }
-                s.ubicacionDevolucion == null -> { _state.update { it.copy(error = "Selecciona el lugar de devolución") }; return@launch }
-                s.fechaRecogidaDate.isEmpty() -> { _state.update { it.copy(error = "Selecciona la fecha de recogida") }; return@launch }
-                s.fechaDevolucionDate.isEmpty() -> { _state.update { it.copy(error = "Selecciona la fecha de devolución") }; return@launch }
+                ubicacionRecogida == null -> {
+                    _state.update { it.copy(error = errorRecogida) }
+                    return@launch
+                }
+                ubicacionDevolucion == null -> {
+                    _state.update { it.copy(error = errorDevolucion) }
+                    return@launch
+                }
+                s.fechaRecogidaDate.isEmpty() -> {
+                    _state.update { it.copy(error = errorFechaRecogida) }
+                    return@launch
+                }
+                s.fechaDevolucionDate.isEmpty() -> {
+                    _state.update { it.copy(error = errorFechaDevolucion) }
+                    return@launch
+                }
             }
 
             _state.update { it.copy(isLoading = true, error = null) }
 
-            val result = updateReservacionUseCase(
+            when (val result = updateReservacionUseCase(
                 reservacionId = s.bookingId,
-                ubicacionRecogidaId = s.ubicacionRecogida!!.ubicacionId,
-                ubicacionDevolucionId = s.ubicacionDevolucion!!.ubicacionId,
+                ubicacionRecogidaId = ubicacionRecogida.remoteId ?: 0,
+                ubicacionDevolucionId = ubicacionDevolucion.remoteId ?: 0,
                 fechaRecogida = s.fechaRecogidaDate,
                 horaRecogida = s.horaRecogidaTime,
                 fechaDevolucion = s.fechaDevolucionDate,
                 horaDevolucion = s.horaDevolucionTime
-            )
-
-            when (result) {
+            )) {
                 is Resource.Success -> _state.update { it.copy(isLoading = false, saveSuccess = true) }
-                is Resource.Error -> _state.update { it.copy(isLoading = false, error = result.message ?: "Error al guardar") }
-                is Resource.Loading -> {}
+                is Resource.Error -> _state.update { it.copy(isLoading = false, error = result.message) }
+                is Resource.Loading -> Unit
             }
         }
     }
