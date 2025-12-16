@@ -1,9 +1,6 @@
 package edu.ucne.kias_rent_car.presentation.AdminTareas.AdminReservas
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,13 +13,14 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import edu.ucne.kias_rent_car.domain.model.EstadoReserva
+import edu.ucne.kias_rent_car.presentation.Components.KiaPrimaryButton
+import edu.ucne.kias_rent_car.presentation.Components.KiaScaffold
 import edu.ucne.kias_rent_car.ui.theme.onErrorDark
-import edu.ucne.kias_rent_car.ui.theme.scrimLight
 
 @Composable
 fun ModifyEstadoReservaScreen(
     viewModel: ModifyEstadoReservaViewModel = hiltViewModel(),
-    reservacionId: Int,
+    reservacionId: String,
     onNavigateBack: () -> Unit,
     onSaveSuccess: () -> Unit
 ) {
@@ -33,9 +31,7 @@ fun ModifyEstadoReservaScreen(
     }
 
     LaunchedEffect(state.saveSuccess) {
-        if (state.saveSuccess) {
-            onSaveSuccess()
-        }
+        if (state.saveSuccess) onSaveSuccess()
     }
 
     ModifyEstadoReservaBody(
@@ -49,35 +45,13 @@ fun ModifyEstadoReservaScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModifyEstadoReservaBody(
     state: ModifyEstadoReservaUiState,
     onEvent: (ModifyEstadoReservaUiEvent) -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "KIA'S RENT CAR",
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { onEvent(ModifyEstadoReservaUiEvent.NavigateBack) }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = scrimLight)
-            )
-        },
-        containerColor = scrimLight
+    KiaScaffold(
+        onNavigateBack = { onEvent(ModifyEstadoReservaUiEvent.NavigateBack) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -138,25 +112,11 @@ fun ModifyEstadoReservaBody(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            Button(
+            KiaPrimaryButton(
+                text = "Guardar Cambios",
                 onClick = { onEvent(ModifyEstadoReservaUiEvent.GuardarCambios) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                enabled = !state.isLoading,
-                colors = ButtonDefaults.buttonColors(containerColor = onErrorDark),
-                shape = RoundedCornerShape(28.dp)
-            ) {
-                if (state.isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onBackground)
-                } else {
-                    Text(
-                        text = "Guardar Cambios",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
+                isLoading = state.isLoading
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
         }
@@ -180,13 +140,13 @@ private fun InfoRow(label: String, value: String) {
 @Composable
 private fun ModifyEstadoReservaBodyPreview() {
     MaterialTheme {
-        val state = ModifyEstadoReservaUiState(
-            codigoReserva = "KR-123456",
-            nombreCliente = "Juan Pérez",
-            vehiculo = "Kia Sportage",
-            periodo = "15/01 - 20/01/2025",
-            estadoSeleccionado = EstadoReserva.CONFIRMADA
-        )
-        ModifyEstadoReservaBody(state) {}
+        ModifyEstadoReservaBody(
+            ModifyEstadoReservaUiState(
+                codigoReserva = "KR-123456",
+                nombreCliente = "Juan Pérez",
+                vehiculo = "Kia Sportage",
+                periodo = "15/01 - 20/01/2025"
+            )
+        ) {}
     }
 }

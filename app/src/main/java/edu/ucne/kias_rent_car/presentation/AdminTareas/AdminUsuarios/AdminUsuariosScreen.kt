@@ -7,8 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,9 +20,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import edu.ucne.kias_rent_car.domain.model.Usuario
-import edu.ucne.kias_rent_car.presentation.Components.AdminBottomNavigation
+import edu.ucne.kias_rent_car.presentation.Components.*
 import edu.ucne.kias_rent_car.ui.theme.onErrorDark
-import edu.ucne.kias_rent_car.ui.theme.scrimLight
+
 @Composable
 fun AdminUsuariosScreen(
     viewModel: AdminUsuariosViewModel = hiltViewModel(),
@@ -49,34 +48,14 @@ fun AdminUsuariosScreen(
         }
     )
 }
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun AdminUsuariosBody(
     state: AdminUsuariosUiState,
     onEvent: (AdminUsuariosUiEvent) -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "KIA'S RENT CAR",
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { onEvent(AdminUsuariosUiEvent.NavigateBack) }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = scrimLight)
-            )
-        },
+    KiaScaffold(
+        onNavigateBack = { onEvent(AdminUsuariosUiEvent.NavigateBack) },
         bottomBar = {
             AdminBottomNavigation(
                 currentRoute = "admin_usuarios",
@@ -86,11 +65,11 @@ fun AdminUsuariosBody(
                         "admin_reservas" -> onEvent(AdminUsuariosUiEvent.NavigateToReservas)
                         "admin_vehiculos" -> onEvent(AdminUsuariosUiEvent.NavigateToVehiculos)
                         "admin_profile" -> onEvent(AdminUsuariosUiEvent.NavigateToProfile)
+                        else -> Unit
                     }
                 }
             )
-        },
-        containerColor = scrimLight
+        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -109,30 +88,16 @@ fun AdminUsuariosBody(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedTextField(
+            KiaSearchField(
                 value = state.searchQuery,
                 onValueChange = { onEvent(AdminUsuariosUiEvent.OnSearchChange(it)) },
-                placeholder = { Text("Buscar usuario...", color = MaterialTheme.colorScheme.outline) },
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.outline) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    focusedBorderColor = onErrorDark,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                ),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
+                placeholder = "Buscar usuario..."
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             if (state.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = onErrorDark)
-                }
+                KiaLoadingBox()
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(state.usuarios) { usuario ->
@@ -159,7 +124,9 @@ private fun UsuarioCard(
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -204,18 +171,6 @@ private fun UsuarioCard(
 @Composable
 private fun AdminUsuariosBodyPreview() {
     MaterialTheme {
-        val state = AdminUsuariosUiState(
-            usuarios = listOf(
-                Usuario(id = 1, nombre = "Juan Pérez",
-                    email = "juan@test.com",
-                    telefono = "1234567890",
-                    rol = "Cliente"),
-                Usuario(id = 2, nombre = "María García",
-                    email = "maria@test.com",
-                    telefono = null,
-                    rol = "Admin")
-            )
-        )
-        AdminUsuariosBody(state) {}
+        AdminUsuariosBody(AdminUsuariosUiState()) {}
     }
 }

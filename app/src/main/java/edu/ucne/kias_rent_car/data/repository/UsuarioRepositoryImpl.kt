@@ -133,9 +133,7 @@ class UsuarioRepositoryImpl @Inject constructor(
 
     override suspend fun deleteUsuario(id: String): Resource<Unit> {
         val usuario = localDataSource.getById(id)
-        val remoteId = usuario?.remoteId ?: id.toIntOrNull()
-
-        if (remoteId == null) {
+        val remoteId = usuario?.remoteId ?: id.toIntOrNull() ?: run {
             localDataSource.deleteById(id)
             return Resource.Success(Unit)
         }
