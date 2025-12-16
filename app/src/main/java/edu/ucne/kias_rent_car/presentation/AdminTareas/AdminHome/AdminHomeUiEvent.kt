@@ -1,9 +1,9 @@
 package edu.ucne.kias_rent_car.presentation.AdminTareas.AdminHome
 
 sealed interface AdminHomeUiEvent {
-    object NavigateToVehiculos : AdminHomeUiEvent
-    object NavigateToReservas : AdminHomeUiEvent
-    object NavigateToUsuarios : AdminHomeUiEvent
-    object NavigateToMensajes : AdminHomeUiEvent
-    object NavigateToProfile : AdminHomeUiEvent
+    data object NavigateToVehiculos : AdminHomeUiEvent
+    data object NavigateToReservas : AdminHomeUiEvent
+    data object NavigateToUsuarios : AdminHomeUiEvent
+    data object NavigateToMensajes : AdminHomeUiEvent
+    data object NavigateToProfile : AdminHomeUiEvent
 }

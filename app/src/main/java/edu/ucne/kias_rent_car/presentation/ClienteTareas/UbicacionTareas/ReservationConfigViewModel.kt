@@ -3,6 +3,7 @@ package edu.ucne.kias_rent_car.presentation.ClienteTareas.UbicacionTareas
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import edu.ucne.kias_rent_car.data.remote.Resource
 import edu.ucne.kias_rent_car.domain.model.ReservationConfig
 import edu.ucne.kias_rent_car.domain.usecase.Reservacion.SaveReservationConfigUseCase
 import edu.ucne.kias_rent_car.domain.usecase.Ubicacion.GetUbicacionesUseCase
@@ -22,6 +23,7 @@ class ReservationConfigViewModel @Inject constructor(
     private val getVehicleDetailUseCase: GetVehicleDetailUseCase,
     private val saveReservationConfigUseCase: SaveReservationConfigUseCase
 ) : ViewModel() {
+
     private val _state = MutableStateFlow(ReservationConfigUiState())
     val state: StateFlow<ReservationConfigUiState> = _state.asStateFlow()
 
@@ -67,12 +69,13 @@ class ReservationConfigViewModel @Inject constructor(
 
     private fun loadVehicle(vehicleId: String) {
         viewModelScope.launch {
-            try {
-                val vehicle = getVehicleDetailUseCase(vehicleId)
-                if (vehicle != null) {
-                    _state.update { it.copy(precioPorDia = vehicle.precioPorDia) }
+            when (val result = getVehicleDetailUseCase(vehicleId)) {
+                is Resource.Success -> {
+                    _state.update { it.copy(precioPorDia = result.data.precioPorDia) }
                 }
-            } catch (_: Exception) { }
+                is Resource.Error -> Unit
+                is Resource.Loading -> Unit
+            }
         }
     }
 
@@ -82,7 +85,7 @@ class ReservationConfigViewModel @Inject constructor(
             try {
                 val ubicaciones = getUbicacionesUseCase()
                 _state.update { it.copy(ubicaciones = ubicaciones, isLoading = false) }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, error = "Error al cargar ubicaciones") }
             }
         }
@@ -137,8 +140,8 @@ class ReservationConfigViewModel @Inject constructor(
                 subtotal = s.subtotal,
                 impuestos = s.impuestos,
                 total = s.total,
-                ubicacionRecogidaId = s.lugarRecogida?.ubicacionId ?: 0,
-                ubicacionDevolucionId = s.lugarDevolucion?.ubicacionId ?: 0
+                ubicacionRecogidaId = s.lugarRecogida?.remoteId ?: 0,
+                ubicacionDevolucionId = s.lugarDevolucion?.remoteId ?: 0
             )
             saveReservationConfigUseCase(config)
             _state.update { it.copy(configSaved = true) }

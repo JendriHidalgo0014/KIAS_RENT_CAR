@@ -3,6 +3,7 @@ package edu.ucne.kias_rent_car.presentation.ReservationTareas
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import edu.ucne.kias_rent_car.data.remote.Resource
 import edu.ucne.kias_rent_car.domain.usecase.Reservacion.GetReservationConfigUseCase
 import edu.ucne.kias_rent_car.domain.usecase.Vehicle.GetVehicleDetailUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +18,7 @@ class ReservationConfirmationViewModel @Inject constructor(
     private val getVehicleDetailUseCase: GetVehicleDetailUseCase,
     private val getReservationConfigUseCase: GetReservationConfigUseCase
 ) : ViewModel() {
+
     private val _state = MutableStateFlow(ReservationConfirmationUiState())
     val state: StateFlow<ReservationConfirmationUiState> = _state.asStateFlow()
 
@@ -31,29 +33,38 @@ class ReservationConfirmationViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
 
-            val vehicle = getVehicleDetailUseCase(vehicleId)
-            val config = getReservationConfigUseCase()
+            val vehicleResult = getVehicleDetailUseCase(vehicleId)
+            val configResult = getReservationConfigUseCase()
 
-            if (vehicle != null && config != null) {
-                val dias = config.dias
-                val subtotal = vehicle.precioPorDia * dias
-                val impuestos = subtotal * 0.18
-                val total = subtotal + impuestos
+            if (vehicleResult is Resource.Success && configResult is Resource.Success) {
+                val vehicle = vehicleResult.data
+                val config = configResult.data
 
-                _state.update {
-                    it.copy(
-                        vehicle = vehicle,
-                        fechaRecogida = config.fechaRecogida,
-                        fechaDevolucion = config.fechaDevolucion,
-                        lugarRecogida = config.lugarRecogida,
-                        lugarDevolucion = config.lugarDevolucion,
-                        dias = dias,
-                        subtotal = subtotal,
-                        impuestos = impuestos,
-                        total = total,
-                        isLoading = false
-                    )
+                if (config != null) {
+                    val dias = config.dias
+                    val subtotal = vehicle.precioPorDia * dias
+                    val impuestos = subtotal * 0.18
+                    val total = subtotal + impuestos
+
+                    _state.update {
+                        it.copy(
+                            vehicle = vehicle,
+                            fechaRecogida = config.fechaRecogida,
+                            fechaDevolucion = config.fechaDevolucion,
+                            lugarRecogida = config.lugarRecogida,
+                            lugarDevolucion = config.lugarDevolucion,
+                            dias = dias,
+                            subtotal = subtotal,
+                            impuestos = impuestos,
+                            total = total,
+                            isLoading = false
+                        )
+                    }
+                } else {
+                    _state.update { it.copy(isLoading = false) }
                 }
+            } else {
+                _state.update { it.copy(isLoading = false) }
             }
         }
     }

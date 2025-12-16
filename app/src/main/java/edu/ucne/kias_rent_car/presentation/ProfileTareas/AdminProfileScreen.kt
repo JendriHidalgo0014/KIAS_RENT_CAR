@@ -75,7 +75,7 @@ fun AdminProfileBody(
                         "admin_home" -> onEvent(AdminProfileUiEvent.NavigateToHome)
                         "admin_reservas" -> onEvent(AdminProfileUiEvent.NavigateToReservas)
                         "admin_vehiculos" -> onEvent(AdminProfileUiEvent.NavigateToVehiculos)
-                        "admin_profile" -> { }
+                        else -> Unit
                     }
                 }
             )

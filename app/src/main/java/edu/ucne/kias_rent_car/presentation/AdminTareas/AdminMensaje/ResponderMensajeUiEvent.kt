@@ -1,8 +1,8 @@
 package edu.ucne.kias_rent_car.presentation.AdminTareas.AdminMensaje
 
 sealed interface ResponderMensajeUiEvent {
-    data class LoadMensaje(val mensajeId: Int) : ResponderMensajeUiEvent
+    data class LoadMensaje(val mensajeId: String) : ResponderMensajeUiEvent
     data class OnRespuestaChange(val respuesta: String) : ResponderMensajeUiEvent
-    object EnviarRespuesta : ResponderMensajeUiEvent
-    object NavigateBack : ResponderMensajeUiEvent
+    data object EnviarRespuesta : ResponderMensajeUiEvent
+    data object NavigateBack : ResponderMensajeUiEvent
 }

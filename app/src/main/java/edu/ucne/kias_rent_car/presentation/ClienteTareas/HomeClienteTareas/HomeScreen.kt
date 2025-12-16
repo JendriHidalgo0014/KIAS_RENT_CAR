@@ -82,10 +82,10 @@ fun HomeBody(
                 currentRoute = "home",
                 onNavigate = { route ->
                     when (route) {
-                        "home" -> { }
                         "bookings" -> onEvent(HomeUiEvent.NavigateToBookings)
                         "support" -> onEvent(HomeUiEvent.NavigateToSupport)
                         "profile" -> onEvent(HomeUiEvent.NavigateToProfile)
+                        else -> Unit
                     }
                 }
             )
